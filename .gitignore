@@ -5,3 +5,8 @@
 
 # binary files
 /out/
+.classpath
+.project
+bin/
+.settings/
+*.jar
