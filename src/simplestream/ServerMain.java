@@ -16,6 +16,6 @@ public class ServerMain {
             System.exit(-1);
         }
         boolean isLocal = (params.remoteUrl==null);
-        new Server(params.sport, isLocal, 3).start();
+        new Server(params.sport, isLocal, params.rateLimit, 3).start();
     }
 }
