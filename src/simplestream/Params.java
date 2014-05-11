@@ -13,5 +13,5 @@ public class Params {
     public Integer rport = null;
 
     @Parameter(names = "-rate", required = false, description = "Sleep time (ms)")
-    public Integer rate = 100;
+    public Integer rateLimit = 100;
 }

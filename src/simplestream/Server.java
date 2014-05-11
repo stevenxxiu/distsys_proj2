@@ -14,12 +14,14 @@ import java.util.List;
 public class Server {
     public int port;
     public int maxClients;
+    public int rateLimit;
     public boolean isLocal;
     List<Thread> serverThreads = new ArrayList<Thread>();
 
-    public Server(int port, boolean isLocal, int maxClients){
+    public Server(int port, boolean isLocal, int rateLimit, int maxClients){
         this.port = port;
         this.maxClients = maxClients;
+        this.rateLimit = rateLimit;
         this.isLocal = isLocal;
     }
 
@@ -75,7 +77,7 @@ public class Server {
                 System.out.println("Client exited");
                 continue;
             }
-            Thread serverThread = new Thread(new ServerThread(clientSocket, input, output, this));
+            Thread serverThread = new Thread(new ServerThread(clientSocket, input, output, rateLimit, this));
             serverThreads.add(serverThread);
             serverThread.start();
         }
