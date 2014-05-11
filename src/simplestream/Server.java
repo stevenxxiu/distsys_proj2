@@ -14,11 +14,13 @@ import java.util.List;
 public class Server {
     public int port;
     public int maxClients;
+    public boolean isLocal;
     List<Thread> serverThreads = new ArrayList<Thread>();
 
-    public Server(int port, int maxClients){
+    public Server(int port, boolean isLocal, int maxClients){
         this.port = port;
         this.maxClients = maxClients;
+        this.isLocal = isLocal;
     }
 
     public void start(){
@@ -44,21 +46,22 @@ public class Server {
                 continue;
             }
             System.out.println("Client connected");
-            if(serverThreads.size() > maxClients){
-                JSONObject status = new JSONObject();
-                try{
-                    status.put("response", "overloaded");
-                }catch(JSONException e){
-                    assert false;
-                }
-                try{
-                    output.writeUTF(status.toString());
-                    output.flush();
-                    clientSocket.close();
-                }catch(IOException e){
-                    System.out.println("Client exited");
-                    continue;
-                }
+            JSONObject status = new JSONObject();
+            try{
+                status.put("response", "status");
+                status.put("streaming", isLocal?"local":"remote");
+                status.put("clients", serverThreads.size());
+                status.put("ratelimiting", "yes");
+                status.put("handover", "yes");
+            }catch(JSONException e){
+                assert false;
+            }
+            try{
+                output.writeUTF(status.toString());
+                output.flush();
+                clientSocket.close();
+            }catch(IOException e){
+                System.out.println("Client exited");
                 continue;
             }
             Thread serverThread = new Thread(new ServerThread(input, output));
