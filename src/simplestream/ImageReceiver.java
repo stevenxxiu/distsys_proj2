@@ -10,98 +10,96 @@ import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 public class ImageReceiver {
-	public static void main (String args[]) throws ParseException {    
-	    Socket s = null;
-	    
-		try{
-			    
-			String hostname="localhost";
-		s = new Socket(InetAddress.getByName(hostname),6262);////////////////////////////////////////////????????????????1111111
-		System.out.println("Connection Established");
-		
+	
 
-	    
-		DataInputStream input = new DataInputStream( s.getInputStream());
-		DataOutputStream output =new DataOutputStream( s.getOutputStream());
-		
-		JSONObject startstream= new JSONObject();  
-        JSONObject stopstream = new JSONObject(); 
-        
-        int sport=6262;
-        try {
-        	startstream.put("request", "startstream");  
-        	startstream.put("sport", sport); }
-
-			//obj.put("startstream",startstream);}
-		 catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}  
-        output.writeUTF(startstream.toString()) ;                    
-        // out.write(obj.toString().getBytes());  
-        String cReadStatus=input.readUTF();
-        System.out.println("cReadStatus:  "+cReadStatus);
-        
-        String cReadStartingStream=input.readUTF();
-        System.out.println("cReadStartingStream:  "+cReadStartingStream);
-        
-        
-        
-        
-        
+	public void start(){
+		Socket SocketImageReceiver = null;
 		try {
-			Thread.sleep(10);
-			System.out.println("client sleep 1000");
-			
+			String hostname = "localhost";
+			int port = 6262;
+			SocketImageReceiver = new Socket(InetAddress.getByName(hostname),
+					port);
+			DataInputStream input = new DataInputStream(SocketImageReceiver
+					.getInputStream());
+			DataOutputStream output = new DataOutputStream(SocketImageReceiver
+					.getOutputStream());
+
+			JSONObject startstream = new JSONObject();
+			JSONObject stopstream = new JSONObject();
 			try {
-				stopstream.put("request", "stopstream");
-				
+				startstream.put("request", "startstream");
+				startstream.put("sport", "port");
+
 			} catch (JSONException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
-			output.writeUTF(stopstream.toString());
-			System.out.println("send request stopstream");
-		} 
-		catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			output.writeUTF(startstream.toString());
+			JSONObject JSONReadStartingStream = null;
+			try {
+				JSONReadStartingStream = new JSONObject(input.readUTF());
+			} catch (JSONException e2) {
+				System.out.println("Invalid JSON response");
+				return;
+			}
+			try {
+				if (JSONReadStartingStream.get("reponse").equals("overloaded")) {
+					System.out.println("Server Overloaded, TCP Close");
+					SocketImageReceiver.close();
+				}
+			} catch (JSONException e1) {
+				System.out.println("Invalid JSON response");
+				return;
+			}
+
+			Scanner keyboard = new Scanner(System.in);
+			System.out.println("Input stop to close the connection");
+			String order = keyboard.next();
+			if (order.equals("stop")) {
+				try {
+					stopstream.put("request", "stopstream");
+				} catch (JSONException e) {
+					System.out.println("Invalid JSON response");
+					return;
+				}
+				output.writeUTF(stopstream.toString());
+				System.out.println("stop and send request stopstream");
+			}
+
+			List<String> readImageList = new ArrayList<String>();
+			while (true) {
+				readImageList.add(input.readUTF());
+
+				if (readImageList.get(readImageList.size()).contains(
+						"stoppedstream")) {
+					System.out.println("cReadStoppedstream:  "
+							+ input.readUTF());
+					SocketImageReceiver.close();
+					System.out.println("client TCP close");
+				}
+				break;
+			}
+
+		} catch (UnknownHostException e) {
+			System.out.println("Socket:" + e.getMessage());
+		} catch (EOFException e) {
+			System.out.println("EOF:" + e.getMessage());
+		} catch (IOException e) {
+			System.out.println("readline:" + e.getMessage());
+		} finally {
+			if (SocketImageReceiver != null)
+				try {
+					SocketImageReceiver.close();
+				} catch (IOException e) {
+					System.out.println("close:" + e.getMessage());
+				}
 		}
-		
-		
-		
-		//String cReadStoppedstream=input.readUTF();
-		List<String> readList = new ArrayList<String>();
-		while(true){
-			readList.add(input.readUTF());
-		
-		
-		 if (readList.get(readList.size()).contains("stoppedstream")){
-		System.out.println("cReadStoppedstream:  "+input.readUTF());
-		s.close();
-		System.out.println("client TCP close");
-		 }break;}
-		 
-		 
-		 
-		 
-		 
-}catch (UnknownHostException e) {
-	System.out.println("Socket:"+e.getMessage());
-}catch (EOFException e){
-System.out.println("EOF:"+e.getMessage());
-}catch (IOException e){
-System.out.println("readline:"+e.getMessage());
-}finally {
-if(s!=null) try {
-s.close();
-}catch (IOException e){
-System.out.println("close:"+e.getMessage());
-      }
-		}}}
+	}	
+	};
+	}
