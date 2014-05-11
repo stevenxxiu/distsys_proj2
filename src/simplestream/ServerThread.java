@@ -9,26 +9,28 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class ServerThread implements Runnable {
+    int rateLimit;
     Socket clientSocket;
     DataInputStream input;
     DataOutputStream output;
     Server server;
 
-    public ServerThread(Socket clientSocket, DataInputStream input, DataOutputStream output, Server server) {
+    public ServerThread(Socket clientSocket, DataInputStream input, DataOutputStream output, int rateLimit, Server server) {
         this.clientSocket = clientSocket;
         this.input = input;
         this.output = output;
+        this.rateLimit = rateLimit;
         this.server = server;
     }
 
     public void run(){
-        JSONObject response = new JSONObject();
+        JSONObject response;
         // add overloaded response upon first request
         try{
-            String startStreamReqStr = input.readUTF();
+            String requestStr = input.readUTF();
             try{
-                JSONObject startStreamReq = new JSONObject(startStreamReqStr);
-                if (!startStreamReq.getString("request").equals("startstream")) {
+                JSONObject request = new JSONObject(requestStr);
+                if (!request.getString("request").equals("startstream")) {
                     System.out.println("Server didn't receive startstream request");
                     return;
                 }
@@ -56,64 +58,30 @@ public class ServerThread implements Runnable {
             }
             output.writeUTF(response.toString());
             output.flush();
-
-
-            JSONObject image = new JSONObject();
-
-            JSONObject JSONReadStartstream = new JSONObject(sReadStartstream);
-
-            System.out.println("status: " + status);
-            System.out.println("sReadStartstream:  " + sReadStartstream);
-            System.out.println("JSONReadStartstream:  " + JSONReadStartstream);
-
-            if (JSONReadStartstream.getString("request").equals("startstream")) {
-                System.out.println("server receive request: startstream");
-
-                try {
-                    startingstream.put("response", "startingstream");
-                    output.writeUTF(startingstream.toString());
-                    Thread sss = new Thread();
-                    sss.start();
-
-                    //System.out.println("test");
-
-                    int i = 0;
-                    boolean temp = true;
-                    //////String sReadStopstream=input.readUTF();
-
-                    while (temp) {
-
-                        image.put("add", i);
-                        image.put("response", "image");
-                        image.put("data", "IMAGEDATA");
-                        i++;
-                        output.writeUTF(image.toString());
-                        System.out.println("image" + image);
-
-                        if (new JSONObject(input.readUTF()).get("request").equals("stopstream")) {
-                            temp = false;
-                            System.out.println("server receive stopstream");
-                            stoppedstream.put("response", "stoppedstream");
-                            output.writeUTF(stoppedstream.toString());
-                            System.out.println("server send stoppedstream ");
-                            listenSocket.close();
-                            clientSocket.close();
-
-                            System.out.println("server TCP close");
-
-                        }//if
-
-
-                    }//while
-
-
-                } catch (JSONException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+            // send images to client
+            while(true){
+                try{
+                    JSONObject request = new JSONObject(requestStr);
+                    if (request.getString("request").equals("stopstream")) {
+                        break;
+                    }else if(request.getString("request").equals("ratelimit")){
+                        rateLimit = request.getInt("ratelimit");
+                    }else{
+                        System.out.println("Unknown request: " + request.getString("request"));
+                    }
+                }catch(JSONException e){
+                    System.out.println("Invalid JSON response");
+                    return;
                 }
-            } else {
+                // XXX send image to client
+                
+                try{
+                    Thread.sleep(rateLimit);
+                }catch(InterruptedException e){
+                    break;
+                }
             }
-
+            clientSocket.close();
         } catch (IOException e){
             System.out.println("Client exited");
             return;
