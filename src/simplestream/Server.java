@@ -15,6 +15,7 @@ public class Server {
             System.out.println(e);
             System.exit(-1);
         }
+        boolean isLocal = (params.remoteUrl==null);
 
     }
 }
