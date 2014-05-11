@@ -1,5 +1,7 @@
 package simplestream;
 
+import java.awt.Graphics;
+import java.awt.Image;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -16,7 +18,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class ImageRemoteReceiver implements ImageReceiverInterface {
-	public byte[] image;
+	public Image image;
 	int port;
 	String hostname;
 
@@ -58,7 +60,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 			}
 
 			try {
-				if (JSONReadStartingStream.get("reponse").equals("overloaded")) {
+				if (JSONReadStartingStream.getString("reponse").equals("overloaded")) {
 					System.out.println("Server Overloaded, TCP Close");
 					SocketImageReceiver.close();
 				}
@@ -81,12 +83,12 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 				output.writeUTF(stopstream.toString());
 				System.out.println("stop and send request stopstream");
 			}
-
+			Graphics g
 			while (true) {
-				if (new JSONObject(input.readUTF()).getString("response")
-						.equals("image")) {
+				if (new JSONObject(input.readUTF()).getString("response").equals("image")) {
 					image = Compressor.decompress(Base64
 							.decode(input.readUTF()));
+					 g.drawImage(image, 0, 0, null);
 				} else {
 					SocketImageReceiver.close();
 					System.out.println("client TCP close");
