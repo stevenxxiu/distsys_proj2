@@ -22,6 +22,7 @@ public class ServerThread implements Runnable {
     }
 
     public void run(){
+        JSONObject response = new JSONObject();
         // add overloaded response upon first request
         try{
             String startStreamReqStr = input.readUTF();
@@ -36,24 +37,30 @@ public class ServerThread implements Runnable {
                 return;
             }
             if(server.isOverloaded()){
-                JSONObject status = new JSONObject();
+                response = new JSONObject();
                 try{
-                    status.put("response", "overloaded");
+                    response.put("response", "overloaded");
                 }catch(JSONException e){
                     assert false;
                 }
-                output.writeUTF(status.toString());
+                output.writeUTF(response.toString());
                 output.flush();
                 clientSocket.close();
                 return;
             }
+            response = new JSONObject();
+            try{
+                response.put("response", "startingstream");
+            }catch(JSONException e){
+                assert false;
+            }
+            output.writeUTF(response.toString());
+            output.flush();
 
-            JSONObject startingstream = new JSONObject();
+
             JSONObject image = new JSONObject();
-            JSONObject stoppedstream = new JSONObject();
 
             JSONObject JSONReadStartstream = new JSONObject(sReadStartstream);
-
 
             System.out.println("status: " + status);
             System.out.println("sReadStartstream:  " + sReadStartstream);
