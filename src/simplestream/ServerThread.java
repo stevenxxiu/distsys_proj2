@@ -74,7 +74,7 @@ public class ServerThread implements Runnable {
                     return;
                 }
                 // XXX send image to client
-                
+
                 try{
                     Thread.sleep(rateLimit);
                 }catch(InterruptedException e){
