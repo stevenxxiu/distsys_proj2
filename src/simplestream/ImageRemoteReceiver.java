@@ -15,90 +15,98 @@ import java.util.Scanner;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class ImageRemoteReceiver implements ImageReceiverInterface{
-    public byte[] image;
+public class ImageRemoteReceiver implements ImageReceiverInterface {
+	public byte[] image;
+	int port;
+	String hostname;
 
-    public void start(){
-        Socket SocketImageReceiver = null;
-        try {
-            String hostname = "localhost";
-            int port = 6262;
-            SocketImageReceiver = new Socket(InetAddress.getByName(hostname),
-                    port);
-            DataInputStream input = new DataInputStream(SocketImageReceiver
-                    .getInputStream());
-            DataOutputStream output = new DataOutputStream(SocketImageReceiver
-                    .getOutputStream());
+	public ImageRemoteReceiver(int port, String hostname) {
+		this.port = port;
+		this.hostname = hostname;
+	}
 
-            JSONObject startstream = new JSONObject();
-            JSONObject stopstream = new JSONObject();
-            try {
-                startstream.put("request", "startstream");
-                startstream.put("sport", "port");
+	public void start() {
+		Socket SocketImageReceiver = null;
+		try {
+			SocketImageReceiver = new Socket(InetAddress.getByName(hostname),
+					port);
+			DataInputStream input = new DataInputStream(SocketImageReceiver
+					.getInputStream());
+			DataOutputStream output = new DataOutputStream(SocketImageReceiver
+					.getOutputStream());
 
-            } catch (JSONException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            output.writeUTF(startstream.toString());
-            JSONObject JSONReadStartingStream = null;
-            try {
-                JSONReadStartingStream = new JSONObject(input.readUTF());
-            } catch (JSONException e2) {
-                System.out.println("Invalid JSON response");
-                return;
-            }
-            try {
-                if (JSONReadStartingStream.get("reponse").equals("overloaded")) {
-                    System.out.println("Server Overloaded, TCP Close");
-                    SocketImageReceiver.close();
-                }
-            } catch (JSONException e1) {
-                System.out.println("Invalid JSON response");
-                return;
-            }
+			JSONObject startstream = new JSONObject();
+			JSONObject stopstream = new JSONObject();
+			try {
+//				if (Integer.valueOf(port) == null) {
+//					port = 6262;
+//				}
+				startstream.put("request", "startstream");
+				startstream.put("sport", port);
 
-            Scanner keyboard = new Scanner(System.in);
-            System.out.println("Input stop to close the connection");
-            String order = keyboard.next();
-            if (order.equals("stop")) {
-                try {
-                    stopstream.put("request", "stopstream");
-                } catch (JSONException e) {
-                    System.out.println("Invalid JSON response");
-                    return;
-                }
-                output.writeUTF(stopstream.toString());
-                System.out.println("stop and send request stopstream");
-            }
+			} catch (JSONException e) {
+				System.out.println("Invalid JSON response");
+				return;
+			}
+			output.writeUTF(startstream.toString());
+			JSONObject JSONReadStartingStream = null;
+			try {
+				JSONReadStartingStream = new JSONObject(input.readUTF());
+			} catch (JSONException e2) {
+				System.out.println("Invalid JSON response");
+				return;
+			}
 
-            while (true) {
-                readImageList.add(input.readUTF());
+			try {
+				if (JSONReadStartingStream.get("reponse").equals("overloaded")) {
+					System.out.println("Server Overloaded, TCP Close");
+					SocketImageReceiver.close();
+				}
+			} catch (JSONException e1) {
+				System.out.println("Invalid JSON response");
+				return;
+			}
 
-                if (readImageList.get(readImageList.size()).contains(
-                        "stoppedstream")) {
-                    System.out.println("cReadStoppedstream:  "
-                            + input.readUTF());
-                    SocketImageReceiver.close();
-                    System.out.println("client TCP close");
-                }
-                break;
-            }
+			Scanner keyboard = new Scanner(System.in);
+			System.out.println("Input 'stop' to close the connection");
+			String order = keyboard.next();
+			if (order.equals("stop")) {
+				try {
+					System.out.println("Client Stop");
+					stopstream.put("request", "stopstream");
+				} catch (JSONException e) {
+					System.out.println("Invalid JSON response");
+					return;
+				}
+				output.writeUTF(stopstream.toString());
+				System.out.println("stop and send request stopstream");
+			}
 
-        } catch (UnknownHostException e) {
-            System.out.println("Socket:" + e.getMessage());
-        } catch (EOFException e) {
-            System.out.println("EOF:" + e.getMessage());
-        } catch (IOException e) {
-            System.out.println("readline:" + e.getMessage());
-        } finally {
-            if (SocketImageReceiver != null)
-                try {
-                    SocketImageReceiver.close();
-                } catch (IOException e) {
-                    System.out.println("close:" + e.getMessage());
-                }
-        }
-    }
+			while (true) {
+				if (new JSONObject(input.readUTF()).getString("response")
+						.equals("image")) {
+					image = Compressor.decompress(Base64
+							.decode(input.readUTF()));
+				} else {
+					SocketImageReceiver.close();
+					System.out.println("client TCP close");
+				}
+				break;
+			}
+
+		} catch (UnknownHostException e) {
+			System.out.println("Socket:" + e.getMessage());
+		} catch (EOFException e) {
+			System.out.println("EOF:" + e.getMessage());
+		} catch (IOException e) {
+			System.out.println("readline:" + e.getMessage());
+		} finally {
+			if (SocketImageReceiver != null)
+				try {
+					SocketImageReceiver.close();
+				} catch (IOException e) {
+					System.out.println("close:" + e.getMessage());
+				}
+		}
+	}
 };
-}
