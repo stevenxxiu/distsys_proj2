@@ -63,6 +63,12 @@ public class ServerThread implements Runnable {
                 try{
                     JSONObject request = new JSONObject(requestStr);
                     if (request.getString("request").equals("stopstream")) {
+                        response = new JSONObject();
+                        try{
+                            response.put("response", "stoppedstream");
+                        }catch(JSONException e){
+                            assert false;
+                        }
                         break;
                     }else if(request.getString("request").equals("ratelimit")){
                         rateLimit = request.getInt("ratelimit");
