@@ -15,8 +15,8 @@ public class ServerMain {
             System.out.println(e);
             System.exit(-1);
         }
+        // XXX
         boolean isLocal = (params.remoteUrl==null);
-
+        new Server(params.sport, 3).start();
     }
-
 }

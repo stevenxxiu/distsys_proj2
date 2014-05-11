@@ -22,9 +22,6 @@ public class Server {
     }
 
     public void start(){
-        //	boolean started = false;
-        //	List<Client> clients = new ArrayList<Client>();
-        //	ServerSocket ss = null;
         ServerSocket listenSocket;
 
         try {
