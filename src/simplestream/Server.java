@@ -75,7 +75,7 @@ public class Server {
                 System.out.println("Client exited");
                 continue;
             }
-            Thread serverThread = new Thread(new ServerThread(input, output, this));
+            Thread serverThread = new Thread(new ServerThread(clientSocket, input, output, this));
             serverThreads.add(serverThread);
             serverThread.start();
         }
