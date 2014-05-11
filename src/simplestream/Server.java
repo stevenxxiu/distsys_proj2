@@ -23,6 +23,17 @@ public class Server {
         this.isLocal = isLocal;
     }
 
+    public boolean isOverloaded(){
+        // check for which threads have exited
+        List<Thread> serverThreadsAlive = new ArrayList<Thread>();
+        for(Thread thread:serverThreads){
+            if(thread.isAlive())
+                serverThreadsAlive.add(thread);
+        }
+        serverThreads = serverThreadsAlive;
+        return serverThreads.size() > maxClients;
+    }
+
     public void start(){
         ServerSocket listenSocket;
 
@@ -64,7 +75,7 @@ public class Server {
                 System.out.println("Client exited");
                 continue;
             }
-            Thread serverThread = new Thread(new ServerThread(input, output));
+            Thread serverThread = new Thread(new ServerThread(input, output, this));
             serverThreads.add(serverThread);
             serverThread.start();
         }

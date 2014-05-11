@@ -10,7 +10,7 @@ public class ServerThread implements Runnable {
     DataInputStream input;
     DataOutputStream output;
 
-    public ServerThread(DataInputStream input, DataOutputStream output) {
+    public ServerThread(DataInputStream input, DataOutputStream output, Server server) {
         this.input = input;
         this.output = output;
     }
