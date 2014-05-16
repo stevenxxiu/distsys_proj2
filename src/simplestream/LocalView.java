@@ -19,6 +19,7 @@ public class LocalView {
 		frame.setSize(320, 240);
 		frame.setVisible(true);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
 		frame.add(myViewer);
 		/**
 		 * This example show how to use native OpenIMAJ API to capture raw bytes
@@ -64,8 +65,10 @@ public class LocalView {
 			/* Give the raw image bytes to the viewer. */
 			myViewer.ViewerInput(decompressed_image);
 			frame.repaint();
+			//myViewer.ViewerInput(decompressed_image);
+			//myViewer.paintComponent(grabber);
 		} while (++i < n);
-
+		
 		grabber.stopSession();
 	}
 	
