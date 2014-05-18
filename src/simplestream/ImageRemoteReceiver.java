@@ -17,11 +17,13 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
     int sport;
 	int port;
 	String hostname;
+    int rateLimit;
 
-	public ImageRemoteReceiver(int sport, int port, String hostname) {
+	public ImageRemoteReceiver(int sport, int port, String hostname, int rateLimit) {
         this.sport = sport;
 		this.port = port;
 		this.hostname = hostname;
+        this.rateLimit = rateLimit;
 	}
 
     class ReceiverThread implements Runnable {
@@ -53,6 +55,11 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 try {
                     request.put("request", "startstream");
                     request.put("sport", sport);
+                    // send rate limiting request if possible
+                    if (serverStatus.hasRateLimiting) {
+                        request.put("ratelimit", rateLimit);
+                    }
+
                 } catch (JSONException e) {
                     assert false;
                 }
@@ -70,8 +77,6 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     System.out.println("Invalid response: " + response.getString("response"));
                     return;
                 }
-                // XXX send rate limiting request if possible
-
                 while (true) {
                     try {
                         response = new JSONObject(input.readUTF());
