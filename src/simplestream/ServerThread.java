@@ -26,23 +26,19 @@ public class ServerThread implements Runnable {
     public void run(){
         JSONObject response;
         // add overloaded response upon first request
-        try{
+        try {
+            JSONObject request;
             String requestStr = input.readUTF();
-            try{
-                JSONObject request = new JSONObject(requestStr);
-                if (!request.getString("request").equals("startstream")) {
-                    System.out.println("Server didn't receive startstream request");
-                    return;
-                }
-            }catch(JSONException e){
-                System.out.println("Invalid JSON response");
+            request = new JSONObject(requestStr);
+            if (!request.getString("request").equals("startstream")) {
+                System.out.println("Server didn't receive startstream request");
                 return;
             }
-            if(server.isOverloaded()){
+            if (server.isOverloaded()) {
                 response = new JSONObject();
-                try{
+                try {
                     response.put("response", "overloaded");
-                }catch(JSONException e){
+                } catch (JSONException e) {
                     assert false;
                 }
                 output.writeUTF(response.toString());
@@ -51,43 +47,41 @@ public class ServerThread implements Runnable {
                 return;
             }
             response = new JSONObject();
-            try{
+            try {
                 response.put("response", "startingstream");
-            }catch(JSONException e){
+            } catch (JSONException e) {
                 assert false;
             }
             output.writeUTF(response.toString());
             output.flush();
             // send images to client
-            while(true){
-                try{
-                    JSONObject request = new JSONObject(requestStr);
-                    if (request.getString("request").equals("stopstream")) {
-                        response = new JSONObject();
-                        try{
-                            response.put("response", "stoppedstream");
-                        }catch(JSONException e){
-                            assert false;
-                        }
-                        break;
-                    }else if(request.getString("request").equals("ratelimit")){
-                        rateLimit = request.getInt("ratelimit");
-                    }else{
-                        System.out.println("Unknown request: " + request.getString("request"));
+            while (true) {
+                request = new JSONObject(requestStr);
+                if (request.getString("request").equals("stopstream")) {
+                    response = new JSONObject();
+                    try {
+                        response.put("response", "stoppedstream");
+                    } catch (JSONException e) {
+                        assert false;
                     }
-                }catch(JSONException e){
-                    System.out.println("Invalid JSON response");
-                    return;
+                    break;
+                } else if (request.getString("request").equals("ratelimit")) {
+                    rateLimit = request.getInt("ratelimit");
+                } else {
+                    System.out.println("Unknown request: " + request.getString("request"));
                 }
                 // XXX send image to client
 
-                try{
+                try {
                     Thread.sleep(rateLimit);
-                }catch(InterruptedException e){
+                } catch (InterruptedException e) {
                     break;
                 }
             }
             clientSocket.close();
+        } catch(JSONException e){
+            System.out.println("Invalid JSON response");
+            return;
         } catch (IOException e){
             System.out.println("Client exited");
             return;
