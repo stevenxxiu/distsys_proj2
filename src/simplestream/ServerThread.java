@@ -23,6 +23,12 @@ public class ServerThread implements Runnable {
         this.server = server;
     }
 
+    class SenderThread implements Runnable {
+        public void run(){
+            
+        }
+    }
+
     public void run(){
         JSONObject response;
         // add overloaded response upon first request
