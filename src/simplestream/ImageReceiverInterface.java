@@ -1,5 +1,7 @@
 package simplestream;
 
 public interface ImageReceiverInterface {
-    public byte[] image = new byte[0];
+    // java doesn't allow fields to be specified in interfaces
+    public byte[] getImage();
+    public void setImage(byte[] image);
 }

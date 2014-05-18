@@ -38,7 +38,6 @@ public class Server {
 
     public void start(){
         ServerSocket listenSocket;
-
         try {
             listenSocket = new ServerSocket(port);
         }catch(IOException e){
