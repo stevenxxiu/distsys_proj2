@@ -5,10 +5,15 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Scanner;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -18,8 +23,12 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 	int port;
 	String hostname;
     int rateLimit;
+    // list of dead servers, never refreshed
+    HashSet<InetSocketAddress> serversDead;
+    // list of servers to search for in case the current one is dead
+    ArrayBlockingQueue<InetSocketAddress> serversQueue;
 
-	public ImageRemoteReceiver(int sport, int port, String hostname, int rateLimit) {
+    public ImageRemoteReceiver(int sport, int port, String hostname, int rateLimit) {
         this.sport = sport;
 		this.port = port;
 		this.hostname = hostname;
@@ -59,7 +68,6 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     if (serverStatus.hasRateLimiting) {
                         request.put("ratelimit", rateLimit);
                     }
-
                 } catch (JSONException e) {
                     assert false;
                 }
@@ -70,8 +78,22 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 if (response.getString("response").equals("startingstream")) {
                 } else if (response.getString("response").equals("overloaded")) {
                     System.out.println("Server overloaded");
-                    // XXX try to connect to another server using the handover data
-
+                    if (serverStatus.hasHandOver && !serverStatus.isLocal){
+                        // try to connect to another server by searching using BFS
+                        InetSocketAddress address;
+                        JSONArray handoverClients = response.getJSONArray("clients");
+                        JSONObject handoverServer = response.getJSONObject("clients");
+                        System.out.println("Handover data is present, searching for other servers using BFS");
+                        for(int i=0;i<handoverClients.length();i++){
+                            JSONObject handoverClient = handoverClients.getJSONObject(i);
+                            address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
+                            if(!serversDead.contains(address))
+                                serversQueue.add(address);
+                        }
+                        address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
+                        if(!serversDead.contains(address))
+                            serversQueue.add(address);
+                    }
                     return;
                 } else {
                     System.out.println("Invalid response: " + response.getString("response"));
@@ -132,6 +154,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
         /*
         serve images until the server sends stopstream
         */
+        // XXX process serversQueue
         Thread receiverThread = new Thread(new ReceiverThread());
         receiverThread.run();
         System.out.println("Hit enter to close the connection.");
