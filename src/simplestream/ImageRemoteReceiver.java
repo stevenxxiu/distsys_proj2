@@ -35,12 +35,18 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 	}
 
     class ReceiverThread implements Runnable {
+        InetSocketAddress address;
+
+        public ReceiverThread(InetSocketAddress address){
+            this.address = address;
+        }
+
         public void run(){
             Socket clientSocket;
             try {
-                clientSocket = new Socket(InetAddress.getByName(hostname), port);
+                clientSocket = new Socket(address.getAddress(), address.getPort());
             }catch(IOException e){
-                System.out.println("Could not connect to server: " + hostname + ":" + port);
+                System.out.println("Could not connect to server: " + address.getAddress() + ":" + address.getPort());
                 return;
             }
             DataInputStream input;
@@ -78,12 +84,12 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 } else if (response.getString("response").equals("overloaded")) {
                     System.out.println("Server overloaded");
                     if (serverStatus.hasHandOver && !serverStatus.isLocal){
-                        // try to connect to another server by searching using BFS
+                        // try to connect to another server
                         InetSocketAddress address;
                         JSONArray handoverClients = response.getJSONArray("clients");
                         JSONObject handoverServer = response.getJSONObject("clients");
-                        System.out.println("Handover data is present, searching for other servers using BFS");
-                        for(int i=0;i<handoverClients.length();i++){
+                        System.out.println("Handover data is present, searching for other servers");
+                        for(int i=0; i<handoverClients.length(); i++){
                             JSONObject handoverClient = handoverClients.getJSONObject(i);
                             address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
                             if(!serversDead.contains(address))
@@ -100,6 +106,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 }
                 while (true) {
                     try {
+                        // read server's image
                         response = new JSONObject(input.readUTF());
                         if (response.getString("response").equals("image")) {
                             image = Compressor.decompress(Base64.decode(response.getString("data")));
@@ -153,15 +160,35 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
         /*
         serve images until the server sends stopstream
         */
-        // XXX process serversQueue
-        Thread receiverThread = new Thread(new ReceiverThread());
-        receiverThread.run();
-        System.out.println("Hit enter to close the connection.");
-        Scanner scanner = new Scanner(System.in);
-        while(receiverThread.isAlive()){
-            String input = scanner.nextLine();
-            if(input.length() == 0)
-                receiverThread.interrupt();
+        // search for a working server, one at a time, using BFS
+        try {
+            serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), port));
+        }catch(IOException e){
+            System.out.println("Could not find server's address: " + hostname + ":" + port);
+            return;
+        }
+        Thread receiverThread = null;
+        while(!serversQueue.isEmpty()){
+            InetSocketAddress address;
+            try{
+                address = serversQueue.take();
+            }catch(InterruptedException e){
+                return;
+            }
+            receiverThread = new Thread(new ReceiverThread(address));
+            receiverThread.run();
+            // XXX wait for server's success or failure response, with timeout
+
+        }
+        // start an interactive prompt
+        if(receiverThread != null){
+            System.out.println("Hit enter to close the connection.");
+            Scanner scanner = new Scanner(System.in);
+            while(receiverThread.isAlive()){
+                String input = scanner.nextLine();
+                if(input.length() == 0)
+                    receiverThread.interrupt();
+            }
         }
 	}
 
