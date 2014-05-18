@@ -58,13 +58,11 @@ public class Server {
                 continue;
             }
             System.out.println("Client connected");
-            JSONObject status = new JSONObject();
+            JSONObject status = null;
             try{
+                ServerStatus serverStatus = new ServerStatus(isLocal, serverThreads.size(), true, true);
+                status = serverStatus.toJSON();
                 status.put("response", "status");
-                status.put("streaming", isLocal?"local":"remote");
-                status.put("clients", serverThreads.size());
-                status.put("ratelimiting", "yes");
-                status.put("handover", "yes");
             }catch(JSONException e){
                 assert false;
             }
