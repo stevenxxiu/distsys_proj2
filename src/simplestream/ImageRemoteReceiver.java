@@ -48,18 +48,6 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     System.out.println("Invalid response: " + response.getString("response"));
                     return;
                 }
-                // read the server's next response
-                response = new JSONObject(input.readUTF());
-                if (response.getString("response").equals("startingstream")) {
-                } else if (response.getString("response").equals("overloaded")) {
-                    System.out.println("Server overloaded");
-                    // XXX try to connect to another server using the handover data
-
-                    return;
-                } else {
-                    System.out.println("Invalid response: " + response.getString("response"));
-                    return;
-                }
                 // send startstream request
                 request = new JSONObject();
                 try {
