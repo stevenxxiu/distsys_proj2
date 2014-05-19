@@ -13,16 +13,22 @@ public class ClientView {
         this.receiver = receiver;
     }
 
-    public void start(){
-        Viewer viewer = new Viewer();
-        JFrame frame = new JFrame("Simple Stream Viewer");
-        frame.setSize(width, height);
-        frame.setVisible(true);
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.add(viewer);
-        while(true) {
-            viewer.ViewerInput(receiver.getNextImage());
-            frame.repaint();
+    class ViewThread implements Runnable {
+        public void run(){
+            Viewer viewer = new Viewer();
+            JFrame frame = new JFrame("Simple Stream Viewer");
+            frame.setSize(width, height);
+            frame.setVisible(true);
+            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            frame.add(viewer);
+            while(true) {
+                viewer.ViewerInput(receiver.getNextImage());
+                frame.repaint();
+            }
         }
+    }
+
+    public void start(){
+        new Thread(new ViewThread()).start();
     }
 }
