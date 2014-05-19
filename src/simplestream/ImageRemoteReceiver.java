@@ -157,7 +157,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     }
                 }
             } catch (InterruptedIOException e) {
-                System.out.println("Transmissions not finished yet, client force exited");
+                System.out.println("Transmissions not finished yet, force disconnect from server");
                 return;
             } catch (IOException e) {
                 System.out.println("Disconnected from server");
@@ -203,8 +203,8 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     System.out.println("Trying next server in queue");
                     InetSocketAddress address = serversQueue.remove();
                     receiverRunnable = new ReceiverThread(address);
-                    receiverThread = new Thread(new ReceiverThread(address));
-                    receiverThread.run();
+                    receiverThread = new Thread(receiverRunnable);
+                    receiverThread.start();
                     // wait for server's success or failure response
                     synchronized (receiverRunnable.connectNotify){
                         receiverRunnable.connectNotify.wait(connectTimeout);
