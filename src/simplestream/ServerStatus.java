@@ -30,16 +30,16 @@ class ServerStatus {
         }
         res.numClients = response.getInt("clients");
         if (response.getString("ratelimiting").equals("yes")) {
-            res.isLocal = true;
+            res.hasRateLimiting = true;
         } else if (response.getString("ratelimiting").equals("no")) {
-            res.isLocal = false;
+            res.hasRateLimiting = false;
         } else {
             throw new JSONException("ratelimiting");
         }
         if (response.getString("handover").equals("yes")) {
-            res.isLocal = true;
+            res.hasHandOver = true;
         } else if (response.getString("handover").equals("no")) {
-            res.isLocal = false;
+            res.hasHandOver = false;
         } else {
             throw new JSONException("handover");
         }
