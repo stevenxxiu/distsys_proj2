@@ -16,6 +16,12 @@ public class ServerMain {
             System.exit(-1);
         }
         boolean isLocal = (params.remoteUrl == null);
-        new Server(params.sport, isLocal, params.rateLimit, 3).start();
+        ImageReceiverInterface receiver;
+        if(isLocal){
+            receiver = new ImageLocalReceiver();
+        }else{
+            receiver = new ImageRemoteReceiver(params.sport, params.rport, params.remoteUrl, params.rateLimit, 1000);
+        }
+        new Server(params.sport, receiver, isLocal, params.rateLimit, 3).start();
     }
 }

@@ -19,7 +19,7 @@ import org.json.JSONObject;
 public class ImageRemoteReceiver implements ImageReceiverInterface {
     byte[] image;
     int sport;
-    int port;
+    int rport;
     String hostname;
     int rateLimit;
     int connectTimeout;
@@ -28,9 +28,9 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
     // list of servers to search for in case the current one is dead
     ArrayBlockingQueue<InetSocketAddress> serversQueue;
 
-    public ImageRemoteReceiver(int sport, int port, String hostname, int rateLimit, int connectTimeout) {
+    public ImageRemoteReceiver(int sport, int rport, String hostname, int rateLimit, int connectTimeout) {
         this.sport = sport;
-        this.port = port;
+        this.rport = rport;
         this.hostname = hostname;
         this.rateLimit = rateLimit;
         this.connectTimeout = connectTimeout;
@@ -175,9 +175,9 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
         serve images until the server sends stopstream
         */
         try {
-            serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), port));
+            serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), rport));
         } catch (IOException e) {
-            System.out.println("Could not find server's address: " + hostname + ":" + port);
+            System.out.println("Could not find server's address: " + hostname + ":" + rport);
             return;
         }
         // search for a working server, one at a time, using BFS

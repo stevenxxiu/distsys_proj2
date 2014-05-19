@@ -16,13 +16,15 @@ public class Server {
     public int maxClients;
     public int rateLimit;
     public boolean isLocal;
+    public ImageReceiverInterface receiver;
     List<Thread> serverThreads = new ArrayList<Thread>();
 
-    public Server(int port, boolean isLocal, int rateLimit, int maxClients) {
+    public Server(int port, ImageReceiverInterface receiver, boolean isLocal, int rateLimit, int maxClients) {
         this.port = port;
         this.maxClients = maxClients;
         this.rateLimit = rateLimit;
         this.isLocal = isLocal;
+        this.receiver = receiver;
     }
 
     public boolean isOverloaded() {
@@ -74,7 +76,7 @@ public class Server {
                 System.out.println("Client exited");
                 continue;
             }
-            Thread serverThread = new Thread(new ServerThread(clientSocket, input, output, rateLimit, this));
+            Thread serverThread = new Thread(new ServerThread(clientSocket, input, output, rateLimit, receiver, this));
             serverThreads.add(serverThread);
             serverThread.start();
         }
