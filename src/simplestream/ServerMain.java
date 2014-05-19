@@ -6,16 +6,16 @@ import com.beust.jcommander.ParameterException;
 public class ServerMain {
     public static void main(String[] argv) {
         Params params = new Params();
-        try{
+        try {
             new JCommander(params, argv);
-            if(params.remoteUrl==null && params.rport!=null){
+            if (params.remoteUrl == null && params.rport != null) {
                 throw new ParameterException("-rport specified but -remoteUrl unspecified");
             }
-        }catch(ParameterException e){
+        } catch (ParameterException e) {
             System.out.println(e.toString());
             System.exit(-1);
         }
-        boolean isLocal = (params.remoteUrl==null);
+        boolean isLocal = (params.remoteUrl == null);
         new Server(params.sport, isLocal, params.rateLimit, 3).start();
     }
 }

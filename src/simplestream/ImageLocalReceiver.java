@@ -11,7 +11,8 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
     int height = 240;
     int fps = 30;
 
-    public ImageLocalReceiver() {}
+    public ImageLocalReceiver() {
+    }
 
     public void start() {
         /*
@@ -24,7 +25,7 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
         if (!started) {
             throw new RuntimeException("Not able to start native grabber!");
         }
-        while(true) {
+        while (true) {
             grabber.nextFrame();
             image = grabber.getImage().getBytes(width * height * 3);
         }

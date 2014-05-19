@@ -28,9 +28,9 @@ public class ServerThread implements Runnable {
     }
 
     class ImageSenderThread implements Runnable {
-        public void run(){
-            try{
-                while(true){
+        public void run() {
+            try {
+                while (true) {
                     // send image to client
                     output.writeUTF(Base64.encodeBase64String(Compressor.compress(receiver.getImage())));
                     output.flush();
@@ -40,14 +40,14 @@ public class ServerThread implements Runnable {
                         break;
                     }
                 }
-            } catch (IOException e){
+            } catch (IOException e) {
                 System.out.println("Client exited");
                 return;
             }
         }
     }
 
-    public void run(){
+    public void run() {
         JSONObject response;
         // add overloaded response upon first request
         try {
@@ -58,7 +58,7 @@ public class ServerThread implements Runnable {
                 if (request.has("ratelimit")) {
                     rateLimit = request.getInt("ratelimit");
                 }
-            }else{
+            } else {
                 System.out.println("Server didn't receive startstream request");
                 return;
             }
@@ -102,10 +102,10 @@ public class ServerThread implements Runnable {
                 }
             }
             clientSocket.close();
-        } catch(JSONException e){
+        } catch (JSONException e) {
             System.out.println("Invalid JSON response");
             return;
-        } catch (IOException e){
+        } catch (IOException e) {
             System.out.println("Client exited");
             return;
         }

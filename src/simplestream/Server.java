@@ -18,59 +18,59 @@ public class Server {
     public boolean isLocal;
     List<Thread> serverThreads = new ArrayList<Thread>();
 
-    public Server(int port, boolean isLocal, int rateLimit, int maxClients){
+    public Server(int port, boolean isLocal, int rateLimit, int maxClients) {
         this.port = port;
         this.maxClients = maxClients;
         this.rateLimit = rateLimit;
         this.isLocal = isLocal;
     }
 
-    public boolean isOverloaded(){
+    public boolean isOverloaded() {
         // check for which threads have exited
         List<Thread> serverThreadsAlive = new ArrayList<Thread>();
-        for(Thread thread:serverThreads){
-            if(thread.isAlive())
+        for (Thread thread : serverThreads) {
+            if (thread.isAlive())
                 serverThreadsAlive.add(thread);
         }
         serverThreads = serverThreadsAlive;
         return serverThreads.size() > maxClients;
     }
 
-    public void start(){
+    public void start() {
         ServerSocket listenSocket;
         try {
             listenSocket = new ServerSocket(port);
-        }catch(IOException e){
+        } catch (IOException e) {
             System.out.println("Could not listen on port " + port);
             return;
         }
         System.out.println("Server Started");
-        while(true){
+        while (true) {
             DataInputStream input;
             DataOutputStream output;
             Socket clientSocket;
-            try{
+            try {
                 clientSocket = listenSocket.accept();
                 input = new DataInputStream(clientSocket.getInputStream());
                 output = new DataOutputStream(clientSocket.getOutputStream());
-            }catch(IOException e){
+            } catch (IOException e) {
                 System.out.println("Client exited");
                 continue;
             }
             System.out.println("Client connected");
             JSONObject status = null;
-            try{
+            try {
                 ServerStatus serverStatus = new ServerStatus(isLocal, serverThreads.size(), true, true);
                 status = serverStatus.toJSON();
                 status.put("response", "status");
-            }catch(JSONException e){
+            } catch (JSONException e) {
                 assert false;
             }
-            try{
+            try {
                 output.writeUTF(status.toString());
                 output.flush();
                 clientSocket.close();
-            }catch(IOException e){
+            } catch (IOException e) {
                 System.out.println("Client exited");
                 continue;
             }

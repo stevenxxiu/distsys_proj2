@@ -19,8 +19,8 @@ import org.json.JSONObject;
 public class ImageRemoteReceiver implements ImageReceiverInterface {
     byte[] image;
     int sport;
-	int port;
-	String hostname;
+    int port;
+    String hostname;
     int rateLimit;
     int connectTimeout;
     // list of dead servers, never refreshed
@@ -30,11 +30,11 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 
     public ImageRemoteReceiver(int sport, int port, String hostname, int rateLimit, int connectTimeout) {
         this.sport = sport;
-		this.port = port;
-		this.hostname = hostname;
+        this.port = port;
+        this.hostname = hostname;
         this.rateLimit = rateLimit;
         this.connectTimeout = connectTimeout;
-	}
+    }
 
     class ReceiverThread implements Runnable {
         InetSocketAddress address;
@@ -43,15 +43,15 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
         boolean connected = false;
         Object connectNotify = new Object();
 
-        public ReceiverThread(InetSocketAddress address){
+        public ReceiverThread(InetSocketAddress address) {
             this.address = address;
         }
 
-        public void connect(){
+        public void connect() {
             Socket clientSocket;
             try {
                 clientSocket = new Socket(address.getAddress(), address.getPort());
-            }catch(IOException e){
+            } catch (IOException e) {
                 System.out.println("Could not connect to server: " + address.getAddress() + ":" + address.getPort());
                 return;
             }
@@ -89,20 +89,20 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 if (response.getString("response").equals("startingstream")) {
                 } else if (response.getString("response").equals("overloaded")) {
                     System.out.println("Server overloaded");
-                    if (serverStatus.hasHandOver && !serverStatus.isLocal){
+                    if (serverStatus.hasHandOver && !serverStatus.isLocal) {
                         // try to connect to another server
                         InetSocketAddress address;
                         JSONArray handoverClients = response.getJSONArray("clients");
                         JSONObject handoverServer = response.getJSONObject("clients");
                         System.out.println("Handover data is present, adding to search queue");
-                        for(int i=0; i<handoverClients.length(); i++){
+                        for (int i = 0; i < handoverClients.length(); i++) {
                             JSONObject handoverClient = handoverClients.getJSONObject(i);
                             address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
-                            if(!serversDead.contains(address))
+                            if (!serversDead.contains(address))
                                 serversQueue.add(address);
                         }
                         address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
-                        if(!serversDead.contains(address))
+                        if (!serversDead.contains(address))
                             serversQueue.add(address);
                     }
                     return;
@@ -144,7 +144,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         return;
                     }
                 }
-            } catch (InterruptedIOException e){
+            } catch (InterruptedIOException e) {
                 System.out.println("Transmissions not finished yet, client force exited");
                 return;
             } catch (IOException e) {
@@ -163,28 +163,28 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
             }
         }
 
-        public void run(){
+        public void run() {
             connect();
             connected = false;
             connectNotify.notify();
         }
     }
 
-	public void start() {
+    public void start() {
         /*
         serve images until the server sends stopstream
         */
         try {
             serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), port));
-        }catch(IOException e){
+        } catch (IOException e) {
             System.out.println("Could not find server's address: " + hostname + ":" + port);
             return;
         }
         // search for a working server, one at a time, using BFS
         ReceiverThread receiverRunnable = null;
         Thread receiverThread = null;
-        try{
-            while(!serversQueue.isEmpty()){
+        try {
+            while (!serversQueue.isEmpty()) {
                 System.out.println("Trying next server in queue");
                 InetSocketAddress address = serversQueue.take();
                 receiverRunnable = new ReceiverThread(address);
@@ -192,27 +192,27 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 receiverThread.run();
                 // wait for server's success or failure response
                 receiverRunnable.connectNotify.wait(connectTimeout);
-                if(receiverRunnable.connected){
+                if (receiverRunnable.connected) {
                     break;
-                }else{
+                } else {
                     receiverThread.interrupt();
                     serversDead.add(address);
                 }
             }
-        }catch(InterruptedException e){
+        } catch (InterruptedException e) {
             return;
         }
         // start an interactive prompt
-        if(receiverRunnable != null && receiverRunnable.connected){
+        if (receiverRunnable != null && receiverRunnable.connected) {
             System.out.println("Hit enter to close the connection.");
             Scanner scanner = new Scanner(System.in);
-            while(receiverThread.isAlive()){
+            while (receiverThread.isAlive()) {
                 String input = scanner.nextLine();
-                if(input.length() == 0)
+                if (input.length() == 0)
                     receiverThread.interrupt();
             }
         }
-	}
+    }
 
     @Override
     public byte[] getImage() {

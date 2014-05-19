@@ -7,31 +7,32 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
-public class Compressor{
-    public static byte[] compress(byte[] content){
+
+public class Compressor {
+    public static byte[] compress(byte[] content) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        try{
+        try {
             GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
             gzipOutputStream.write(content);
             gzipOutputStream.close();
-        } catch(IOException e){
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        System.out.printf("Compression ratio %f\n", (1.0f * content.length/byteArrayOutputStream.size()));
+        System.out.printf("Compression ratio %f\n", (1.0f * content.length / byteArrayOutputStream.size()));
         return byteArrayOutputStream.toByteArray();
     }
 
-    public static byte[] decompress(byte[] contentBytes){
+    public static byte[] decompress(byte[] contentBytes) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try{
+        try {
             IOUtils.copy(new GZIPInputStream(new ByteArrayInputStream(contentBytes)), out);
-        } catch(IOException e){
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return out.toByteArray();
     }
 
-    public static boolean notWorthCompressing(String contentType){
+    public static boolean notWorthCompressing(String contentType) {
         return contentType.contains("jpeg")
                 || contentType.contains("pdf")
                 || contentType.contains("zip")
