@@ -26,12 +26,12 @@ public class LocalView {
             return;
         }
 
-        Viewer myViewer = new Viewer();
+        Viewer viewer = new Viewer();
         JFrame frame = new JFrame("Simple Stream Viewer");
         frame.setSize(320, 240);
         frame.setVisible(true);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.add(myViewer);
+        frame.add(viewer);
 
         boolean started = grabber.startSession(320, 240, 30, Pointer.pointerTo(device));
         if (!started) {
@@ -54,7 +54,7 @@ public class LocalView {
 			// Decompress the image
             byte[] decompressed_image = Compressor.decompress(nobase64_image);
 			// Give the raw image bytes to the viewer.
-            myViewer.ViewerInput(decompressed_image);
+            viewer.ViewerInput(decompressed_image);
             frame.repaint();
         }
     }
