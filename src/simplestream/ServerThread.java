@@ -41,7 +41,9 @@ public class ServerThread implements Runnable {
                         assert false;
                     }
                     output.writeUTF(response.toString());
+                    System.out.println("test");
                     output.flush();
+                    System.out.println("test");
                     try {
                         Thread.sleep(rateLimit);
                     } catch (InterruptedException e) {
@@ -49,7 +51,7 @@ public class ServerThread implements Runnable {
                     }
                 }
             } catch (IOException e) {
-                System.out.println("Client exited");
+                // client exited, return to main server thread
                 return;
             }
         }
@@ -61,8 +63,7 @@ public class ServerThread implements Runnable {
         try {
             JSONObject request;
             System.out.println("Receiving startstream request");
-            String requestStr = input.readUTF();
-            request = new JSONObject(requestStr);
+            request = new JSONObject(input.readUTF());
             if (request.getString("request").equals("startstream")) {
                 if (request.has("ratelimit")) {
                     rateLimit = request.getInt("ratelimit");
@@ -81,7 +82,6 @@ public class ServerThread implements Runnable {
                 }
                 output.writeUTF(response.toString());
                 output.flush();
-                clientSocket.close();
                 return;
             }
             System.out.println("Sending startingstream response");
@@ -99,7 +99,7 @@ public class ServerThread implements Runnable {
             // read client requests asynchronously
             while (true) {
                 System.out.println("Receiving client request");
-                request = new JSONObject(requestStr);
+                request = new JSONObject(input.readUTF());
                 if (request.getString("request").equals("stopstream")) {
                     System.out.println("Sending stoppedstream response");
                     imageSender.interrupt();
@@ -114,13 +114,19 @@ public class ServerThread implements Runnable {
                     System.out.println("Unknown request: " + request.getString("request"));
                 }
             }
-            clientSocket.close();
         } catch (JSONException e) {
             System.out.println("Invalid JSON response");
             return;
         } catch (IOException e) {
             System.out.println("Client exited");
             return;
+        } finally {
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                System.out.println("The socket could not be closed");
+                return;
+            }
         }
     }
 }

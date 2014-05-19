@@ -39,7 +39,7 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
                 grabber.nextFrame();
                 synchronized (imageNotify){
                     image = grabber.getImage().getBytes(320 * 240 * 3);
-                    imageNotify.notify();
+                    imageNotify.notifyAll();
                 }
             }
         }

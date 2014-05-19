@@ -53,6 +53,9 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
         }
 
         public void connect() {
+            /*
+            receives images until the server sends stopstream
+            */
             Socket clientSocket;
             try {
                 clientSocket = new Socket(address.getAddress(), address.getPort());
@@ -118,16 +121,17 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 synchronized (connectNotify){
                     System.out.println("Connected to server");
                     connected = true;
-                    connectNotify.notify();
+                    connectNotify.notifyAll();
                 }
                 while (true) {
                     try {
                         System.out.println("Receiving image response");
                         response = new JSONObject(input.readUTF());
+                        System.out.println("test");
                         if (response.getString("response").equals("image")) {
                             synchronized (imageNotify){
                                 image = Compressor.decompress(Base64.decode(response.getString("data")));
-                                imageNotify.notify();
+                                imageNotify.notifyAll();
                             }
                         } else {
                             System.out.println("Client didn't receive an image");
@@ -152,7 +156,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                             System.out.println("Invalid response: " + response.getString("response"));
                             return;
                         }
-                        System.out.println("Connection ended");
+                        System.out.println("Finished receiving images");
                         return;
                     }
                 }
@@ -179,55 +183,61 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
             connect();
             synchronized (connectNotify){
                 connected = false;
-                connectNotify.notify();
+                connectNotify.notifyAll();
+            }
+        }
+    }
+
+    class ReplThread implements Runnable {
+        public void run(){
+            /*
+            receives images until the server or user exits
+            */
+            try {
+                serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), rport));
+            } catch (IOException e) {
+                System.out.println("Could not find server's address: " + hostname + ":" + rport);
+                return;
+            }
+            // search for a working server, one at a time, using BFS
+            ReceiverThread receiverRunnable = null;
+            Thread receiverThread = null;
+            try {
+                while (!serversQueue.isEmpty()) {
+                    System.out.println("Trying next server in queue");
+                    InetSocketAddress address = serversQueue.remove();
+                    receiverRunnable = new ReceiverThread(address);
+                    receiverThread = new Thread(new ReceiverThread(address));
+                    receiverThread.run();
+                    // wait for server's success or failure response
+                    synchronized (receiverRunnable.connectNotify){
+                        receiverRunnable.connectNotify.wait(connectTimeout);
+                        if (receiverRunnable.connected) {
+                            break;
+                        } else {
+                            receiverThread.interrupt();
+                            serversDead.add(address);
+                        }
+                    }
+                }
+            } catch (InterruptedException e) {
+                return;
+            }
+            // start an interactive prompt
+            if (receiverRunnable != null && receiverRunnable.connected) {
+                System.out.println("Hit enter to close the connection.");
+                Scanner scanner = new Scanner(System.in);
+                while (receiverThread.isAlive()) {
+                    String input = scanner.nextLine();
+                    if (input.length() == 0)
+                        receiverThread.interrupt();
+                }
             }
         }
     }
 
     public void start() {
-        /*
-        serve images until the server sends stopstream
-        */
-        try {
-            serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), rport));
-        } catch (IOException e) {
-            System.out.println("Could not find server's address: " + hostname + ":" + rport);
-            return;
-        }
-        // search for a working server, one at a time, using BFS
-        ReceiverThread receiverRunnable = null;
-        Thread receiverThread = null;
-        try {
-            while (!serversQueue.isEmpty()) {
-                System.out.println("Trying next server in queue");
-                InetSocketAddress address = serversQueue.remove();
-                receiverRunnable = new ReceiverThread(address);
-                receiverThread = new Thread(new ReceiverThread(address));
-                receiverThread.run();
-                // wait for server's success or failure response
-                synchronized (receiverRunnable.connectNotify){
-                    receiverRunnable.connectNotify.wait(connectTimeout);
-                    if (receiverRunnable.connected) {
-                        break;
-                    } else {
-                        receiverThread.interrupt();
-                        serversDead.add(address);
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            return;
-        }
-        // start an interactive prompt
-        if (receiverRunnable != null && receiverRunnable.connected) {
-            System.out.println("Hit enter to close the connection.");
-            Scanner scanner = new Scanner(System.in);
-            while (receiverThread.isAlive()) {
-                String input = scanner.nextLine();
-                if (input.length() == 0)
-                    receiverThread.interrupt();
-            }
-        }
+        new Thread(new ReplThread()).start();
     }
 
     @Override
