@@ -23,6 +23,7 @@ public class ServerMain {
         }else{
             receiver = new ImageRemoteReceiver(params.sport, params.rport, params.remoteUrl, params.rateLimit, 1000);
         }
+        receiver.start();
         new ClientView(width, height, receiver).start();
         new Server(params.sport, receiver, isLocal, params.rateLimit, 3).start();
     }

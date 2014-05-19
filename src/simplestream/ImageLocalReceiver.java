@@ -16,28 +16,36 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
         this.fps = fps;
     }
 
+    class ReceiverThread implements Runnable {
+        public void run() {
+            /*
+            serve images forever
+            */
+            OpenIMAJGrabber grabber = new OpenIMAJGrabber();
+            Device device;
+            Pointer<DeviceList> devices = grabber.getVideoDevices();
+            try{
+                device = devices.get().asArrayList().get(0);
+            }catch(IndexOutOfBoundsException e){
+                System.out.println("No webcam found");
+                return;
+            }
+            boolean started = grabber.startSession(width, height, fps, Pointer.pointerTo(device));
+            if (!started) {
+                throw new RuntimeException("Not able to start native grabber");
+            }
+            while(true) {
+                grabber.nextFrame();
+                synchronized (imageNotify){
+                    image = grabber.getImage().getBytes(320 * 240 * 3);
+                    imageNotify.notify();
+                }
+            }
+        }
+    }
+
     public void start() {
-        /*
-        serve images forever
-        */
-        OpenIMAJGrabber grabber = new OpenIMAJGrabber();
-        Device device;
-        Pointer<DeviceList> devices = grabber.getVideoDevices();
-        try{
-            device = devices.get().asArrayList().get(0);
-        }catch(IndexOutOfBoundsException e){
-            System.out.println("No webcam found");
-            return;
-        }
-        boolean started = grabber.startSession(width, height, fps, Pointer.pointerTo(device));
-        if (!started) {
-            throw new RuntimeException("Not able to start native grabber");
-        }
-        while(true) {
-            grabber.nextFrame();
-            image = grabber.getImage().getBytes(320 * 240 * 3);
-            imageNotify.notify();
-        }
+        new Thread(new ReceiverThread()).start();
     }
 
     @Override
@@ -47,9 +55,11 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
 
     @Override
     public byte[] getNextImage() {
-        try {
-            imageNotify.wait();
-        }catch(InterruptedException e){}
+        synchronized (imageNotify){
+            try {
+                imageNotify.wait();
+            }catch(InterruptedException e){}
+        }
         return image;
     }
 }

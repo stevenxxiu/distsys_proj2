@@ -223,9 +223,11 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 
     @Override
     public byte[] getNextImage() {
-        try {
-            imageNotify.wait();
-        }catch(InterruptedException e){}
+        synchronized (imageNotify){
+            try {
+                imageNotify.wait();
+            }catch(InterruptedException e){}
+        }
         return image;
     }
 }

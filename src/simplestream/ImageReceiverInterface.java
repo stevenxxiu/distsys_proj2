@@ -5,4 +5,6 @@ public interface ImageReceiverInterface {
     public byte[] getImage();
 
     public byte[] getNextImage();
+
+    public void start();
 }
