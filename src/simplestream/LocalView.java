@@ -15,6 +15,17 @@ public class LocalView {
         This example shows how to use native OpenIMAJ API to capture raw bytes
         data as byte[] array. It also calculates current FPS.
         */
+        OpenIMAJGrabber grabber = new OpenIMAJGrabber();
+
+        Device device;
+        Pointer<DeviceList> devices = grabber.getVideoDevices();
+        try{
+            device = devices.get().asArrayList().get(0);
+        }catch(IndexOutOfBoundsException e){
+            System.out.println("No webcam found");
+            return;
+        }
+
         Viewer myViewer = new Viewer();
         JFrame frame = new JFrame("Simple Stream Viewer");
         frame.setSize(320, 240);
@@ -22,18 +33,9 @@ public class LocalView {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.add(myViewer);
 
-        OpenIMAJGrabber grabber = new OpenIMAJGrabber();
-
-        Device device = null;
-        Pointer<DeviceList> devices = grabber.getVideoDevices();
-        for (Device d : devices.get().asArrayList()) {
-            device = d;
-            break;
-        }
-
         boolean started = grabber.startSession(320, 240, 30, Pointer.pointerTo(device));
         if (!started) {
-            throw new RuntimeException("Not able to start native grabber!");
+            throw new RuntimeException("Not able to start native grabber");
         }
 
         while(true) {
