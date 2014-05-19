@@ -46,10 +46,11 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 
         private BufferedReader input;
         private BufferedWriter output;
-        private boolean streamsInterrupted = false;
+        private boolean stopStream;
 
         public ReceiverThread(InetSocketAddress address) {
             this.address = address;
+            stopStream = false;
             connectNotify = new Object();
         }
 
@@ -68,60 +69,53 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
             try {
                 input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
                 output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
+                ServerStatus serverStatus;
+                System.out.println("Receiving status response");
+                response = new JSONObject(input.readLine());
+                if (response.getString("response").equals("status")) {
+                    serverStatus = ServerStatus.fromJSON(response);
+                } else {
+                    System.out.println("Invalid response: " + response.getString("response"));
+                    return;
+                }
+                System.out.println("Sending startstream request");
+                request = new JSONObject();
                 try {
-                    ServerStatus serverStatus;
-                    System.out.println("Receiving status response");
-                    response = new JSONObject(input.readLine());
-                    if (response.getString("response").equals("status")) {
-                        serverStatus = ServerStatus.fromJSON(response);
-                    } else {
-                        System.out.println("Invalid response: " + response.getString("response"));
-                        return;
+                    request.put("request", "startstream");
+                    request.put("sport", sport);
+                    // send rate limiting request if possible
+                    if (serverStatus.hasRateLimiting) {
+                        request.put("ratelimit", rateLimit);
                     }
-                    System.out.println("Sending startstream request");
-                    request = new JSONObject();
-                    try {
-                        request.put("request", "startstream");
-                        request.put("sport", sport);
-                        // send rate limiting request if possible
-                        if (serverStatus.hasRateLimiting) {
-                            request.put("ratelimit", rateLimit);
-                        }
-                    } catch (JSONException e) {
-                        assert false;
-                    }
-                    output.write(request.toString() + "\n");
-                    output.flush();
-                    System.out.println("Receiving server response");
-                    response = new JSONObject(input.readLine());
-                    if (response.getString("response").equals("startingstream")) {
-                    } else if (response.getString("response").equals("overloaded")) {
-                        System.out.println("Server overloaded");
-                        if (serverStatus.hasHandOver && !serverStatus.isLocal) {
-                            // try to connect to another server
-                            InetSocketAddress address;
-                            JSONArray handoverClients = response.getJSONArray("clients");
-                            JSONObject handoverServer = response.getJSONObject("clients");
-                            System.out.println("Handover data is present, adding to search queue");
-                            for (int i = 0; i < handoverClients.length(); i++) {
-                                JSONObject handoverClient = handoverClients.getJSONObject(i);
-                                address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
-                                if (!serversDead.contains(address))
-                                    serversQueue.add(address);
-                            }
-                            address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
+                } catch (JSONException e) {
+                    assert false;
+                }
+                output.write(request.toString() + "\n");
+                output.flush();
+                System.out.println("Receiving server response");
+                response = new JSONObject(input.readLine());
+                if (response.getString("response").equals("startingstream")) {
+                } else if (response.getString("response").equals("overloaded")) {
+                    System.out.println("Server overloaded");
+                    if (serverStatus.hasHandOver && !serverStatus.isLocal) {
+                        // try to connect to another server
+                        InetSocketAddress address;
+                        JSONArray handoverClients = response.getJSONArray("clients");
+                        JSONObject handoverServer = response.getJSONObject("clients");
+                        System.out.println("Handover data is present, adding to search queue");
+                        for (int i = 0; i < handoverClients.length(); i++) {
+                            JSONObject handoverClient = handoverClients.getJSONObject(i);
+                            address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
                             if (!serversDead.contains(address))
                                 serversQueue.add(address);
                         }
-                        return;
-                    } else {
-                        System.out.println("Invalid response: " + response.getString("response"));
-                        return;
+                        address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
+                        if (!serversDead.contains(address))
+                            serversQueue.add(address);
                     }
-                } catch (IOException e) {
-                    if(!streamsInterrupted)
-                        throw e;
-                    System.out.println("Handshake not finished yet, force disconnect from server");
+                    return;
+                } else {
+                    System.out.println("Invalid response: " + response.getString("response"));
                     return;
                 }
                 synchronized (connectNotify){
@@ -130,22 +124,20 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     connectNotify.notifyAll();
                 }
                 while (true) {
-                    try {
-                        System.out.println("Receiving image response");
-                        response = new JSONObject(input.readLine());
-                        if (response.getString("response").equals("image")) {
-                            synchronized (imageNotify){
-                                image = Compressor.decompress(Base64.decodeBase64(response.getString("data")));
-                                imageNotify.notifyAll();
-                            }
-                        } else {
-                            System.out.println("Client didn't receive an image");
-                            return;
+                    System.out.println("Receiving image response");
+                    response = new JSONObject(input.readLine());
+                    if (response.getString("response").equals("image")) {
+                        synchronized (imageNotify){
+                            image = Compressor.decompress(Base64.decodeBase64(response.getString("data")));
+                            imageNotify.notifyAll();
                         }
-                    } catch (IOException e) {
-                        if(!streamsInterrupted)
-                            throw e;
-                        input.reset();
+                    } else {
+                        System.out.println("Client didn't receive an image");
+                        return;
+                    }
+                    if(stopStream) {
+                        input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
+                        output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
                         System.out.println("Sending stopstream request");
                         request = new JSONObject();
                         try {
@@ -175,6 +167,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 return;
             } finally {
                 try {
+                    System.out.println("Closing socket");
                     clientSocket.close();
                 } catch (IOException e) {
                     System.out.println("The socket could not be closed");
@@ -183,12 +176,10 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
             }
         }
 
-        public void interruptStreams(){
-            try {
-                input.close();
-                output.close();
-                streamsInterrupted = true;
-            } catch(IOException e){}
+        public void sendStop(){
+            // we don't use exceptions here as java streams are un-interruptable
+            // won't use NIO as this is takes too much time to do
+            stopStream = true;
         }
 
         public void run() {
@@ -227,7 +218,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         if (receiverRunnable.connected) {
                             break;
                         } else {
-                            receiverRunnable.interruptStreams();
+                            receiverRunnable.sendStop();
                             receiverThread.interrupt();
                             serversDead.add(address);
                         }
@@ -243,7 +234,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 while (receiverThread.isAlive()) {
                     String input = scanner.nextLine();
                     if (input.length() == 0) {
-                        receiverRunnable.interruptStreams();
+                        receiverRunnable.sendStop();
                         receiverThread.interrupt();
                     }
                 }
