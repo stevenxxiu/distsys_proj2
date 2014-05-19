@@ -12,7 +12,7 @@ public class ServerMain {
                 throw new ParameterException("-rport specified but -remoteUrl unspecified");
             }
         }catch(ParameterException e){
-            System.out.println(e);
+            System.out.println(e.toString());
             System.exit(-1);
         }
         boolean isLocal = (params.remoteUrl==null);
