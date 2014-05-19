@@ -165,7 +165,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 return;
             } finally {
                 try {
-                    System.out.println("Closing socket");
+                    System.out.println("Closing client socket");
                     clientSocket.close();
                 } catch (IOException e) {
                     System.out.println("The socket could not be closed");

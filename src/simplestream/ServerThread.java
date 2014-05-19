@@ -90,7 +90,7 @@ public class ServerThread implements Runnable {
             output.flush();
             // create image-sender thread
             Thread imageSender = new Thread(new ImageSenderThread());
-            imageSender.run();
+            imageSender.start();
             // read client requests asynchronously
             while (true) {
                 System.out.println("Receiving client request");
@@ -104,6 +104,9 @@ public class ServerThread implements Runnable {
                     } catch (JSONException e) {
                         assert false;
                     }
+                    output.write(response.toString() + "\n");
+                    output.flush();
+                    System.out.println("Finished sending images");
                     break;
                 } else {
                     System.out.println("Unknown request: " + request.getString("request"));
@@ -117,6 +120,7 @@ public class ServerThread implements Runnable {
             return;
         } finally {
             try {
+                System.out.println("Closing client socket");
                 clientSocket.close();
             } catch (IOException e) {
                 System.out.println("The socket could not be closed");
