@@ -25,7 +25,9 @@ public class ImageRandomReceiver implements ImageReceiverInterface {
 
     @Override
     public byte[] getImage() {
-        return image;
+        synchronized (imageNotify) {
+            return image.clone();
+        }
     }
 
     @Override
@@ -35,8 +37,8 @@ public class ImageRandomReceiver implements ImageReceiverInterface {
                 imageNotify.wait();
             } catch (InterruptedException e) {
             }
+            return image.clone();
         }
-        return image;
     }
 
     class ReceiverThread implements Runnable {
@@ -49,15 +51,15 @@ public class ImageRandomReceiver implements ImageReceiverInterface {
                 float hue = random.nextFloat();
                 image = new byte[width * height * 3];
                 while (true) {
-                    for (int i = 0; i < width; i++) {
-                        for (int j = 0; j < height; j++) {
-                            Color c = Color.getHSBColor(hue, random.nextFloat(), random.nextFloat());
-                            image[(i * height + j) * 3] = (byte) c.getRed();
-                            image[(i * height + j) * 3 + 1] = (byte) c.getGreen();
-                            image[(i * height + j) * 3 + 2] = (byte) c.getBlue();
-                        }
-                    }
                     synchronized (imageNotify) {
+                        for (int i = 0; i < width; i++) {
+                            for (int j = 0; j < height; j++) {
+                                Color c = Color.getHSBColor(hue, random.nextFloat(), random.nextFloat());
+                                image[(i * height + j) * 3] = (byte) c.getRed();
+                                image[(i * height + j) * 3 + 1] = (byte) c.getGreen();
+                                image[(i * height + j) * 3 + 2] = (byte) c.getBlue();
+                            }
+                        }
                         imageNotify.notify();
                     }
                     Thread.sleep(1000 / fps);

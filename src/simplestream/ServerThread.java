@@ -1,11 +1,11 @@
 package simplestream;
 
+import java.io.*;
+import java.net.Socket;
+
 import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.*;
-import java.net.Socket;
 
 public class ServerThread implements Runnable {
     int rateLimit;

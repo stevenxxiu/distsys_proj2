@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -126,7 +126,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         response = new JSONObject(input.readLine());
                         if (response.getString("response").equals("image")) {
                             synchronized (imageNotify){
-                                image = Compressor.decompress(Base64.decode(response.getString("data")));
+                                image = Compressor.decompress(Base64.decodeBase64(response.getString("data")));
                                 imageNotify.notifyAll();
                             }
                         } else {
