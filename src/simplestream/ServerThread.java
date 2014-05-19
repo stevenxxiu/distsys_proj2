@@ -1,5 +1,6 @@
 package simplestream;
 
+import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -13,19 +14,36 @@ public class ServerThread implements Runnable {
     Socket clientSocket;
     DataInputStream input;
     DataOutputStream output;
+    ImageReceiverInterface receiver;
     Server server;
 
-    public ServerThread(Socket clientSocket, DataInputStream input, DataOutputStream output, int rateLimit, Server server) {
+    public ServerThread(Socket clientSocket, DataInputStream input, DataOutputStream output, int rateLimit,
+                        ImageReceiverInterface receiver, Server server) {
         this.clientSocket = clientSocket;
         this.input = input;
         this.output = output;
         this.rateLimit = rateLimit;
+        this.receiver = receiver;
         this.server = server;
     }
 
-    class SenderThread implements Runnable {
+    class ImageSenderThread implements Runnable {
         public void run(){
-            // XXX
+            try{
+                while(true){
+                    // send image to client
+                    output.writeUTF(Base64.encodeBase64String(Compressor.compress(receiver.getImage())));
+                    output.flush();
+                    try {
+                        Thread.sleep(rateLimit);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                }
+            } catch (IOException e){
+                System.out.println("Client exited");
+                return;
+            }
         }
     }
 
@@ -36,7 +54,11 @@ public class ServerThread implements Runnable {
             JSONObject request;
             String requestStr = input.readUTF();
             request = new JSONObject(requestStr);
-            if (!request.getString("request").equals("startstream")) {
+            if (request.getString("request").equals("startstream")) {
+                if (request.has("ratelimit")) {
+                    rateLimit = request.getInt("ratelimit");
+                }
+            }else{
                 System.out.println("Server didn't receive startstream request");
                 return;
             }
@@ -60,10 +82,14 @@ public class ServerThread implements Runnable {
             }
             output.writeUTF(response.toString());
             output.flush();
-            // send images to client
+            // create image-sender thread
+            Thread imageSender = new Thread(new ImageSenderThread());
+            imageSender.run();
+            // read client requests asynchronously
             while (true) {
                 request = new JSONObject(requestStr);
                 if (request.getString("request").equals("stopstream")) {
+                    imageSender.interrupt();
                     response = new JSONObject();
                     try {
                         response.put("response", "stoppedstream");
@@ -71,17 +97,8 @@ public class ServerThread implements Runnable {
                         assert false;
                     }
                     break;
-                } else if (request.getString("request").equals("ratelimit")) {
-                    rateLimit = request.getInt("ratelimit");
                 } else {
                     System.out.println("Unknown request: " + request.getString("request"));
-                }
-                // XXX send image to client
-
-                try {
-                    Thread.sleep(rateLimit);
-                } catch (InterruptedException e) {
-                    break;
                 }
             }
             clientSocket.close();
