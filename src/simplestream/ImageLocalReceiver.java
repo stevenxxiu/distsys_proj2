@@ -51,16 +51,19 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
 
     @Override
     public byte[] getImage() {
-        return image;
+        synchronized (imageNotify) {
+            return image.clone();
+        }
     }
 
     @Override
     public byte[] getNextImage() {
-        synchronized (imageNotify){
+        synchronized (imageNotify) {
             try {
                 imageNotify.wait();
-            }catch(InterruptedException e){}
+            } catch (InterruptedException e) {
+            }
+            return image.clone();
         }
-        return image;
     }
 }

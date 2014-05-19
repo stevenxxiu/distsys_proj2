@@ -238,7 +238,9 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 
     @Override
     public byte[] getImage() {
-        return image;
+        synchronized (imageNotify) {
+            return image.clone();
+        }
     }
 
     @Override
@@ -247,7 +249,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
             try {
                 imageNotify.wait();
             }catch(InterruptedException e){}
+            return image.clone();
         }
-        return image;
     }
 }

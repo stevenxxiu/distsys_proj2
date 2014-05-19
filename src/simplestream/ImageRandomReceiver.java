@@ -19,28 +19,6 @@ public class ImageRandomReceiver implements ImageReceiverInterface {
         imageNotify = new Object();
     }
 
-    public void start() {
-        new Thread(new ReceiverThread()).start();
-    }
-
-    @Override
-    public byte[] getImage() {
-        synchronized (imageNotify) {
-            return image.clone();
-        }
-    }
-
-    @Override
-    public byte[] getNextImage() {
-        synchronized (imageNotify) {
-            try {
-                imageNotify.wait();
-            } catch (InterruptedException e) {
-            }
-            return image.clone();
-        }
-    }
-
     class ReceiverThread implements Runnable {
         public void run() {
             /*
@@ -67,6 +45,28 @@ public class ImageRandomReceiver implements ImageReceiverInterface {
             } catch (InterruptedException e) {
                 return;
             }
+        }
+    }
+
+    public void start() {
+        new Thread(new ReceiverThread()).start();
+    }
+
+    @Override
+    public byte[] getImage() {
+        synchronized (imageNotify) {
+            return image.clone();
+        }
+    }
+
+    @Override
+    public byte[] getNextImage() {
+        synchronized (imageNotify) {
+            try {
+                imageNotify.wait();
+            } catch (InterruptedException e) {
+            }
+            return image.clone();
         }
     }
 }
