@@ -37,7 +37,10 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
     }
 
     @Override
-    public void setImage(byte[] image) {
-        this.image = image;
+    public byte[] getNextImage() {
+        try {
+            imageNotify.wait();
+        }catch(InterruptedException e){}
+        return image;
     }
 }

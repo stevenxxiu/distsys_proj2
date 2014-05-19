@@ -1,13 +1,28 @@
 package simplestream;
 
-import com.github.sarxos.webcam.ds.buildin.natives.Device;
-import com.github.sarxos.webcam.ds.buildin.natives.DeviceList;
-import com.github.sarxos.webcam.ds.buildin.natives.OpenIMAJGrabber;
-import org.apache.commons.codec.binary.Base64;
-import org.bridj.Pointer;
-
 import javax.swing.*;
 
 public class ClientView {
+    int width;
+    int height;
+    ImageReceiverInterface receiver;
 
+    public ClientView(int width, int height, ImageReceiverInterface receiver){
+        this.width = width;
+        this.height = height;
+        this.receiver = receiver;
+    }
+
+    public void start(){
+        Viewer viewer = new Viewer();
+        JFrame frame = new JFrame("Simple Stream Viewer");
+        frame.setSize(width, height);
+        frame.setVisible(true);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.add(viewer);
+        while(true) {
+            viewer.ViewerInput(receiver.getNextImage());
+            frame.repaint();
+        }
+    }
 }

@@ -18,6 +18,7 @@ import org.json.JSONObject;
 
 public class ImageRemoteReceiver implements ImageReceiverInterface {
     byte[] image;
+    Object imageNotify = new Object();
     int sport;
     int rport;
     String hostname;
@@ -118,6 +119,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         response = new JSONObject(input.readUTF());
                         if (response.getString("response").equals("image")) {
                             image = Compressor.decompress(Base64.decode(response.getString("data")));
+                            imageNotify.notify();
                         } else {
                             System.out.println("Client didn't receive an image response");
                             return;
@@ -220,7 +222,10 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
     }
 
     @Override
-    public void setImage(byte[] image) {
-        this.image = image;
+    public byte[] getNextImage() {
+        try {
+            imageNotify.wait();
+        }catch(InterruptedException e){}
+        return image;
     }
 }
