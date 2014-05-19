@@ -8,20 +8,20 @@ public class ServerMain {
         Params params = new Params();
         try {
             new JCommander(params, argv);
-            if (params.remoteUrl == null && params.rport != null) {
-                throw new ParameterException("-rport specified but -remoteUrl unspecified");
+            if (params.rhost == null && params.rport != null) {
+                throw new ParameterException("-rport specified but -remote unspecified");
             }
         } catch (ParameterException e) {
             System.out.println(e.toString());
             System.exit(-1);
         }
-        boolean isLocal = (params.remoteUrl == null);
+        boolean isLocal = (params.rhost == null);
         int width = 320, height = 240, fps = 30;
         ImageReceiverInterface receiver;
         if(isLocal){
             receiver = new ImageLocalReceiver(width, height, fps);
         }else{
-            receiver = new ImageRemoteReceiver(params.sport, params.rport, params.remoteUrl, params.rateLimit, 1000);
+            receiver = new ImageRemoteReceiver(params.sport, params.rport, params.rhost, params.rateLimit, 1000);
         }
         receiver.start();
         new ClientView(width, height, receiver).start();

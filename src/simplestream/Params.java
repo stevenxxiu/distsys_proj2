@@ -7,7 +7,7 @@ public class Params {
     public Integer sport = 6262;
 
     @Parameter(names = "-remote", required = false, description = "Remote url")
-    public String remoteUrl = null;
+    public String rhost = null;
 
     @Parameter(names = "-rport", required = false, description = "Remote port")
     public Integer rport = null;
