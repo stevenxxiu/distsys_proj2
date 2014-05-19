@@ -25,7 +25,7 @@ public class ServerThread implements Runnable {
 
     class SenderThread implements Runnable {
         public void run(){
-            
+            // XXX
         }
     }
 
