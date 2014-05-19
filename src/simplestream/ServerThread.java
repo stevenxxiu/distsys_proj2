@@ -52,6 +52,7 @@ public class ServerThread implements Runnable {
         // add overloaded response upon first request
         try {
             JSONObject request;
+            System.out.println("Receiving client request");
             String requestStr = input.readUTF();
             request = new JSONObject(requestStr);
             if (request.getString("request").equals("startstream")) {
@@ -63,6 +64,7 @@ public class ServerThread implements Runnable {
                 return;
             }
             if (server.isOverloaded()) {
+                System.out.println("Sending overloaded response");
                 response = new JSONObject();
                 try {
                     response.put("response", "overloaded");
@@ -74,6 +76,7 @@ public class ServerThread implements Runnable {
                 clientSocket.close();
                 return;
             }
+            System.out.println("Sending startingstream response");
             response = new JSONObject();
             try {
                 response.put("response", "startingstream");
@@ -87,8 +90,10 @@ public class ServerThread implements Runnable {
             imageSender.run();
             // read client requests asynchronously
             while (true) {
+                System.out.println("Receiving client request");
                 request = new JSONObject(requestStr);
                 if (request.getString("request").equals("stopstream")) {
+                    System.out.println("Sending stoppedstream response");
                     imageSender.interrupt();
                     response = new JSONObject();
                     try {
