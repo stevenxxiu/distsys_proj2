@@ -136,8 +136,6 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         return;
                     }
                     if(stopStream) {
-                        input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
-                        output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
                         System.out.println("Sending stopstream request");
                         request = new JSONObject();
                         try {
