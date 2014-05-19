@@ -22,22 +22,25 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 	int port;
 	String hostname;
     int rateLimit;
+    int connectTimeout;
     // list of dead servers, never refreshed
     HashSet<InetSocketAddress> serversDead;
     // list of servers to search for in case the current one is dead
     ArrayBlockingQueue<InetSocketAddress> serversQueue;
 
-    public ImageRemoteReceiver(int sport, int port, String hostname, int rateLimit) {
+    public ImageRemoteReceiver(int sport, int port, String hostname, int rateLimit, int connectTimeout) {
         this.sport = sport;
 		this.port = port;
 		this.hostname = hostname;
         this.rateLimit = rateLimit;
+        this.connectTimeout = connectTimeout;
 	}
 
     class ReceiverThread implements Runnable {
         InetSocketAddress address;
         // notifies when the client has connected or stopped connecting with the server (server starts sending images)
-        boolean connectStatus = false;
+        // use a separate notifier per-thread to allow for concurrent test-connections
+        boolean connected = false;
         Object connectNotify = new Object();
 
         public ReceiverThread(InetSocketAddress address){
@@ -91,7 +94,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         InetSocketAddress address;
                         JSONArray handoverClients = response.getJSONArray("clients");
                         JSONObject handoverServer = response.getJSONObject("clients");
-                        System.out.println("Handover data is present, searching for other servers");
+                        System.out.println("Handover data is present, adding to search queue");
                         for(int i=0; i<handoverClients.length(); i++){
                             JSONObject handoverClient = handoverClients.getJSONObject(i);
                             address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
@@ -107,7 +110,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     System.out.println("Invalid response: " + response.getString("response"));
                     return;
                 }
-                connectStatus = true;
+                connected = true;
                 connectNotify.notify();
                 while (true) {
                     try {
@@ -162,7 +165,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 
         public void run(){
             connect();
-            connectStatus = false;
+            connected = false;
             connectNotify.notify();
         }
     }
@@ -171,28 +174,36 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
         /*
         serve images until the server sends stopstream
         */
-        // search for a working server, one at a time, using BFS
         try {
             serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), port));
         }catch(IOException e){
             System.out.println("Could not find server's address: " + hostname + ":" + port);
             return;
         }
+        // search for a working server, one at a time, using BFS
+        ReceiverThread receiverRunnable = null;
         Thread receiverThread = null;
-        while(!serversQueue.isEmpty()){
-            InetSocketAddress address;
-            try{
-                address = serversQueue.take();
-            }catch(InterruptedException e){
-                return;
+        try{
+            while(!serversQueue.isEmpty()){
+                System.out.println("Trying next server in queue");
+                InetSocketAddress address = serversQueue.take();
+                receiverRunnable = new ReceiverThread(address);
+                receiverThread = new Thread(new ReceiverThread(address));
+                receiverThread.run();
+                // wait for server's success or failure response
+                receiverRunnable.connectNotify.wait(connectTimeout);
+                if(receiverRunnable.connected){
+                    break;
+                }else{
+                    receiverThread.interrupt();
+                    serversDead.add(address);
+                }
             }
-            receiverThread = new Thread(new ReceiverThread(address));
-            receiverThread.run();
-            // XXX wait for server's success or failure response, with timeout
-
+        }catch(InterruptedException e){
+            return;
         }
         // start an interactive prompt
-        if(receiverThread != null){
+        if(receiverRunnable != null && receiverRunnable.connected){
             System.out.println("Hit enter to close the connection.");
             Scanner scanner = new Scanner(System.in);
             while(receiverThread.isAlive()){
