@@ -104,7 +104,6 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                             System.out.println("Handover implemented on the server but no data available");
                         }
                         // try to connect to another server
-                        InetSocketAddress address;
                         if(response.has("clients")){
                             System.out.println("Adding server's clients to queue");
                             JSONArray handoverClients = response.getJSONArray("clients");
@@ -122,7 +121,6 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         if(response.has("server")){
                             System.out.println("Adding server's server to queue");
                             JSONObject handoverServer = response.getJSONObject("server");
-                            address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
                             String rhost = handoverServer.getString("ip");
                             int rport = handoverServer.getInt("port");
                             try {
