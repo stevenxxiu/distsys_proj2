@@ -29,10 +29,18 @@ public class ServerThread implements Runnable {
 
     class ImageSenderThread implements Runnable {
         public void run() {
+            JSONObject response;
             try {
                 while (true) {
-                    // send image to client
-                    output.writeUTF(Base64.encodeBase64String(Compressor.compress(receiver.getImage())));
+                    System.out.println("Sending image response");
+                    response = new JSONObject();
+                    try {
+                        response.put("response", "image");
+                        response.put("data", Base64.encodeBase64String(Compressor.compress(receiver.getImage())));
+                    } catch (JSONException e) {
+                        assert false;
+                    }
+                    output.writeUTF(response.toString());
                     output.flush();
                     try {
                         Thread.sleep(rateLimit);
@@ -52,7 +60,7 @@ public class ServerThread implements Runnable {
         // add overloaded response upon first request
         try {
             JSONObject request;
-            System.out.println("Receiving client request");
+            System.out.println("Receiving startstream request");
             String requestStr = input.readUTF();
             request = new JSONObject(requestStr);
             if (request.getString("request").equals("startstream")) {
