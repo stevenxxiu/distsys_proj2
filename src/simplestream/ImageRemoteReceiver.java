@@ -18,7 +18,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
     final Object imageNotify;
     int sport;
     int rport;
-    String hostname;
+    String rhost;
     int rateLimit;
     int connectTimeout;
     // list of dead servers, never refreshed
@@ -26,10 +26,10 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
     // list of servers to search for in case the current one is dead
     ConcurrentLinkedQueue<InetSocketAddress> serversQueue;
 
-    public ImageRemoteReceiver(int sport, int rport, String hostname, int rateLimit, int connectTimeout) {
+    public ImageRemoteReceiver(int sport, String rhost, int rport, int rateLimit, int connectTimeout) {
         this.sport = sport;
         this.rport = rport;
-        this.hostname = hostname;
+        this.rhost = rhost;
         this.rateLimit = rateLimit;
         this.connectTimeout = connectTimeout;
         imageNotify = new Object();
@@ -97,21 +97,31 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 if (response.getString("response").equals("startingstream")) {
                 } else if (response.getString("response").equals("overloaded")) {
                     System.out.println("Server overloaded");
-                    if (serverStatus.hasHandOver && !serverStatus.isLocal) {
+                    if (serverStatus.hasHandOver) {
+                        if(response.has("clients") || response.has("server")) {
+                            System.out.println("Handover data available");
+                        }else {
+                            System.out.println("Handover implemented on the server but no data available");
+                        }
                         // try to connect to another server
                         InetSocketAddress address;
-                        JSONArray handoverClients = response.getJSONArray("clients");
-                        JSONObject handoverServer = response.getJSONObject("clients");
-                        System.out.println("Handover data is present, adding to search queue");
-                        for (int i = 0; i < handoverClients.length(); i++) {
-                            JSONObject handoverClient = handoverClients.getJSONObject(i);
-                            address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
+                        if(response.has("clients")){
+                            System.out.println("Adding server's clients to queue");
+                            JSONArray handoverClients = response.getJSONArray("clients");
+                            for (int i = 0; i < handoverClients.length(); i++) {
+                                JSONObject handoverClient = handoverClients.getJSONObject(i);
+                                address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
+                                if (!serversDead.contains(address))
+                                    serversQueue.add(address);
+                            }
+                        }
+                        if(response.has("server")){
+                            System.out.println("Adding server's server to queue");
+                            JSONObject handoverServer = response.getJSONObject("server");
+                            address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
                             if (!serversDead.contains(address))
                                 serversQueue.add(address);
                         }
-                        address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
-                        if (!serversDead.contains(address))
-                            serversQueue.add(address);
                     }
                     return;
                 } else {
@@ -195,9 +205,9 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
             receives images until the server or user exits
             */
             try {
-                serversQueue.add(new InetSocketAddress(InetAddress.getByName(hostname), rport));
+                serversQueue.add(new InetSocketAddress(InetAddress.getByName(rhost), rport));
             } catch (IOException e) {
-                System.out.println("Could not find server's address: " + hostname + ":" + rport);
+                System.out.println("Could not find server's address: " + rhost + ":" + rport);
                 return;
             }
             // search for a working server, one at a time, using BFS

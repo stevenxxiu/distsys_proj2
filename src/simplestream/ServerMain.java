@@ -24,11 +24,11 @@ public class ServerMain {
             if(isLocal){
                 receiver = new ImageLocalReceiver(width, height, fps);
             }else{
-                receiver = new ImageRemoteReceiver(params.sport, params.rport, params.rhost, params.rateLimit, 10000);
+                receiver = new ImageRemoteReceiver(params.sport, params.rhost, params.rport, params.rateLimit, 10000);
             }
         }
         receiver.start();
         new ClientView(width, height, receiver).start();
-        new Server(params.sport, receiver, isLocal, params.rateLimit, 3).start();
+        new Server(params.sport, params.rhost, params.rport, receiver, params.rateLimit, 3).start();
     }
 }

@@ -1,25 +1,38 @@
 package simplestream;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import org.apache.commons.codec.binary.Base64;
+import org.bridj.util.Pair;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 public class ServerThread implements Runnable {
-    int rateLimit;
     Socket clientSocket;
+    int rateLimit;
     BufferedReader input;
     BufferedWriter output;
     ImageReceiverInterface receiver;
     Server server;
+    // client's server sport
+    int csport;
 
     public ServerThread(Socket clientSocket, int rateLimit, ImageReceiverInterface receiver, Server server) {
         this.clientSocket = clientSocket;
         this.rateLimit = rateLimit;
         this.receiver = receiver;
         this.server = server;
+    }
+
+    public int getCsPort(){
+        return csport;
+    }
+
+    public InetSocketAddress getClientAddress(){
+        return new InetSocketAddress(clientSocket.getInetAddress(), clientSocket.getPort());
     }
 
     class ImageSenderThread implements Runnable {
@@ -63,6 +76,11 @@ public class ServerThread implements Runnable {
                 if (request.has("ratelimit")) {
                     rateLimit = request.getInt("ratelimit");
                 }
+                if (request.has("sport")) {
+                    csport = request.getInt("sport");
+                } else {
+                    csport = 6262;
+                }
             } else {
                 System.out.println("Server didn't receive startstream request");
                 return;
@@ -72,6 +90,21 @@ public class ServerThread implements Runnable {
                 response = new JSONObject();
                 try {
                     response.put("response", "overloaded");
+                    if(server.rhost!=null){
+                        JSONObject addressResponse = new JSONObject();
+                        addressResponse.put("ip", server.rhost);
+                        addressResponse.put("port", server.rport);
+                        response.put("server", addressResponse);
+                    }
+                    JSONArray clientAddressesResponse = new JSONArray();
+                    for (Pair<Thread, ServerThread> pair : server.serverThreads) {
+                        ServerThread serverThread = pair.getSecond();
+                        JSONObject addressResponse = new JSONObject();
+                        addressResponse.put("ip", serverThread.getCsPort());
+                        addressResponse.put("port", serverThread.getClientAddress());
+                        clientAddressesResponse.put(addressResponse);
+                    }
+                    response.put("clients", clientAddressesResponse);
                 } catch (JSONException e) {
                     assert false;
                 }
