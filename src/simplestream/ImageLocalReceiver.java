@@ -7,13 +7,14 @@ import org.bridj.Pointer;
 
 public class ImageLocalReceiver implements ImageReceiverInterface {
     byte[] image;
-    Object imageNotify = new Object();
+    final Object imageNotify;
     int width, height, fps;
 
     public ImageLocalReceiver(int width, int height, int fps) {
         this.width = width;
         this.height = height;
         this.fps = fps;
+        imageNotify = new Object();
     }
 
     class ReceiverThread implements Runnable {
