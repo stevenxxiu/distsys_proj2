@@ -60,18 +60,18 @@ public class Server {
                 continue;
             }
             System.out.println("Client connected");
+            System.out.println("Sending status response");
             JSONObject status = null;
             try {
-                ServerStatus serverStatus = new ServerStatus(isLocal, serverThreads.size(), true, true);
-                status = serverStatus.toJSON();
-                status.put("response", "status");
-            } catch (JSONException e) {
-                assert false;
-            }
-            try {
+                try {
+                    ServerStatus serverStatus = new ServerStatus(isLocal, serverThreads.size(), true, true);
+                    status = serverStatus.toJSON();
+                    status.put("response", "status");
+                } catch (JSONException e) {
+                    assert false;
+                }
                 output.writeUTF(status.toString());
                 output.flush();
-                clientSocket.close();
             } catch (IOException e) {
                 System.out.println("Client exited");
                 continue;
