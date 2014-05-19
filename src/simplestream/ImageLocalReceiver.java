@@ -8,11 +8,12 @@ import org.bridj.Pointer;
 public class ImageLocalReceiver implements ImageReceiverInterface {
     byte[] image;
     Object imageNotify = new Object();
-    int width = 320;
-    int height = 240;
-    int fps = 30;
+    int width, height, fps;
 
-    public ImageLocalReceiver() {
+    public ImageLocalReceiver(int width, int height, int fps) {
+        this.width = width;
+        this.height = height;
+        this.fps = fps;
     }
 
     public void start() {
@@ -28,7 +29,7 @@ public class ImageLocalReceiver implements ImageReceiverInterface {
             System.out.println("No webcam found");
             return;
         }
-        boolean started = grabber.startSession(320, 240, 30, Pointer.pointerTo(device));
+        boolean started = grabber.startSession(width, height, fps, Pointer.pointerTo(device));
         if (!started) {
             throw new RuntimeException("Not able to start native grabber");
         }
