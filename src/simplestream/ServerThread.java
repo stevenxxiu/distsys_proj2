@@ -36,9 +36,7 @@ public class ServerThread implements Runnable {
                         assert false;
                     }
                     output.write(response.toString() + "\n");
-                    System.out.println("test");
                     output.flush();
-                    System.out.println("test");
                     try {
                         Thread.sleep(rateLimit);
                     } catch (InterruptedException e) {

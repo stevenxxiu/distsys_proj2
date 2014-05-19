@@ -124,7 +124,6 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     try {
                         System.out.println("Receiving image response");
                         response = new JSONObject(input.readLine());
-                        System.out.println("test");
                         if (response.getString("response").equals("image")) {
                             synchronized (imageNotify){
                                 image = Compressor.decompress(Base64.decode(response.getString("data")));
