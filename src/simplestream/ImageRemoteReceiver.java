@@ -36,12 +36,15 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
 
     class ReceiverThread implements Runnable {
         InetSocketAddress address;
+        // notifies when the client has connected or stopped connecting with the server (server starts sending images)
+        boolean connectStatus = false;
+        Object connectNotify = new Object();
 
         public ReceiverThread(InetSocketAddress address){
             this.address = address;
         }
 
-        public void run(){
+        public void connect(){
             Socket clientSocket;
             try {
                 clientSocket = new Socket(address.getAddress(), address.getPort());
@@ -104,6 +107,8 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     System.out.println("Invalid response: " + response.getString("response"));
                     return;
                 }
+                connectStatus = true;
+                connectNotify.notify();
                 while (true) {
                     try {
                         // read server's image
@@ -153,6 +158,12 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                     return;
                 }
             }
+        }
+
+        public void run(){
+            connect();
+            connectStatus = false;
+            connectNotify.notify();
         }
     }
 
