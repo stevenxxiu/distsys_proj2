@@ -18,10 +18,14 @@ public class ServerMain {
         boolean isLocal = (params.rhost == null);
         int width = 320, height = 240, fps = 30;
         ImageReceiverInterface receiver;
-        if(isLocal){
-            receiver = new ImageLocalReceiver(width, height, fps);
+        if(params.test){
+            receiver = new ImageRandomReceiver(width, height, fps);
         }else{
-            receiver = new ImageRemoteReceiver(params.sport, params.rport, params.rhost, params.rateLimit, 1000);
+            if(isLocal){
+                receiver = new ImageLocalReceiver(width, height, fps);
+            }else{
+                receiver = new ImageRemoteReceiver(params.sport, params.rport, params.rhost, params.rateLimit, 1000);
+            }
         }
         receiver.start();
         new ClientView(width, height, receiver).start();
