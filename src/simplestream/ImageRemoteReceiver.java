@@ -110,17 +110,26 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                             JSONArray handoverClients = response.getJSONArray("clients");
                             for (int i = 0; i < handoverClients.length(); i++) {
                                 JSONObject handoverClient = handoverClients.getJSONObject(i);
-                                address = new InetSocketAddress(handoverClient.getString("ip"), handoverClient.getInt("port"));
-                                if (!serversDead.contains(address))
-                                    serversQueue.add(address);
+                                String rhost = handoverClient.getString("ip");
+                                int rport = handoverClient.getInt("port");
+                                try {
+                                    serversQueue.add(new InetSocketAddress(InetAddress.getByName(rhost), rport));
+                                } catch (IOException e) {
+                                    System.out.println("Could not find server's address: " + rhost + ":" + rport);
+                                }
                             }
                         }
                         if(response.has("server")){
                             System.out.println("Adding server's server to queue");
                             JSONObject handoverServer = response.getJSONObject("server");
                             address = new InetSocketAddress(handoverServer.getString("ip"), handoverServer.getInt("port"));
-                            if (!serversDead.contains(address))
-                                serversQueue.add(address);
+                            String rhost = handoverServer.getString("ip");
+                            int rport = handoverServer.getInt("port");
+                            try {
+                                serversQueue.add(new InetSocketAddress(InetAddress.getByName(rhost), rport));
+                            } catch (IOException e) {
+                                System.out.println("Could not find server's address: " + rhost + ":" + rport);
+                            }
                         }
                     }
                     return;

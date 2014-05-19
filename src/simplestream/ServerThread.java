@@ -31,7 +31,7 @@ public class ServerThread implements Runnable {
         return csport;
     }
 
-    public InetSocketAddress getClientAddress(){
+    public InetSocketAddress getClientSocketAddress(){
         return new InetSocketAddress(clientSocket.getInetAddress(), clientSocket.getPort());
     }
 
@@ -100,8 +100,8 @@ public class ServerThread implements Runnable {
                     for (Pair<Thread, ServerThread> pair : server.serverThreads) {
                         ServerThread serverThread = pair.getSecond();
                         JSONObject addressResponse = new JSONObject();
-                        addressResponse.put("ip", serverThread.getCsPort());
-                        addressResponse.put("port", serverThread.getClientAddress());
+                        addressResponse.put("ip", serverThread.getClientSocketAddress().getAddress().toString().substring(1));
+                        addressResponse.put("port", serverThread.getCsPort());
                         clientAddressesResponse.put(addressResponse);
                     }
                     response.put("clients", clientAddressesResponse);
