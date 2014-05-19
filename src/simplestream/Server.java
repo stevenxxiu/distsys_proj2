@@ -3,9 +3,7 @@ package simplestream;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -48,13 +46,11 @@ public class Server {
         }
         System.out.println("Server Started");
         while (true) {
-            DataInputStream input;
-            DataOutputStream output;
+            BufferedWriter output;
             Socket clientSocket;
             try {
                 clientSocket = listenSocket.accept();
-                input = new DataInputStream(clientSocket.getInputStream());
-                output = new DataOutputStream(clientSocket.getOutputStream());
+                output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
             } catch (IOException e) {
                 System.out.println("Client exited");
                 continue;
@@ -70,13 +66,13 @@ public class Server {
                 } catch (JSONException e) {
                     assert false;
                 }
-                output.writeUTF(status.toString());
+                output.write(status.toString() + "\n");
                 output.flush();
             } catch (IOException e) {
                 System.out.println("Client exited");
                 continue;
             }
-            Thread serverThread = new Thread(new ServerThread(clientSocket, input, output, rateLimit, receiver, this));
+            Thread serverThread = new Thread(new ServerThread(clientSocket, rateLimit, receiver, this));
             serverThreads.add(serverThread);
             serverThread.start();
         }

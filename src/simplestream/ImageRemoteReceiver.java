@@ -1,9 +1,6 @@
 package simplestream;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InterruptedIOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -63,15 +60,15 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 System.out.println("Could not connect to server: " + address.getAddress() + ":" + address.getPort());
                 return;
             }
-            DataInputStream input;
-            DataOutputStream output;
+            BufferedReader input;
+            BufferedWriter output;
             JSONObject request, response;
             try {
-                input = new DataInputStream(clientSocket.getInputStream());
-                output = new DataOutputStream(clientSocket.getOutputStream());
+                input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
+                output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
                 ServerStatus serverStatus;
                 System.out.println("Receiving status response");
-                response = new JSONObject(input.readUTF());
+                response = new JSONObject(input.readLine());
                 if (response.getString("response").equals("status")) {
                     serverStatus = ServerStatus.fromJSON(response);
                 } else {
@@ -90,10 +87,10 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 } catch (JSONException e) {
                     assert false;
                 }
-                output.writeUTF(request.toString());
+                output.write(request.toString() + "\n");
                 output.flush();
                 System.out.println("Receiving server response");
-                response = new JSONObject(input.readUTF());
+                response = new JSONObject(input.readLine());
                 if (response.getString("response").equals("startingstream")) {
                 } else if (response.getString("response").equals("overloaded")) {
                     System.out.println("Server overloaded");
@@ -126,7 +123,7 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                 while (true) {
                     try {
                         System.out.println("Receiving image response");
-                        response = new JSONObject(input.readUTF());
+                        response = new JSONObject(input.readLine());
                         System.out.println("test");
                         if (response.getString("response").equals("image")) {
                             synchronized (imageNotify){
@@ -147,10 +144,10 @@ public class ImageRemoteReceiver implements ImageReceiverInterface {
                         } catch (JSONException e_) {
                             assert false;
                         }
-                        output.writeUTF(request.toString());
+                        output.write(request.toString() + "\n");
                         output.flush();
                         System.out.println("Receiving stopstream response");
-                        response = new JSONObject(input.readUTF());
+                        response = new JSONObject(input.readLine());
                         if (response.getString("response").equals("stoppedstream")) {
                         } else {
                             System.out.println("Invalid response: " + response.getString("response"));

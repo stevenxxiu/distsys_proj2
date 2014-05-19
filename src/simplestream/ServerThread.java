@@ -4,24 +4,19 @@ import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 
 public class ServerThread implements Runnable {
     int rateLimit;
     Socket clientSocket;
-    DataInputStream input;
-    DataOutputStream output;
+    BufferedReader input;
+    BufferedWriter output;
     ImageReceiverInterface receiver;
     Server server;
 
-    public ServerThread(Socket clientSocket, DataInputStream input, DataOutputStream output, int rateLimit,
-                        ImageReceiverInterface receiver, Server server) {
+    public ServerThread(Socket clientSocket, int rateLimit, ImageReceiverInterface receiver, Server server) {
         this.clientSocket = clientSocket;
-        this.input = input;
-        this.output = output;
         this.rateLimit = rateLimit;
         this.receiver = receiver;
         this.server = server;
@@ -40,7 +35,7 @@ public class ServerThread implements Runnable {
                     } catch (JSONException e) {
                         assert false;
                     }
-                    output.writeUTF(response.toString());
+                    output.write(response.toString() + "\n");
                     System.out.println("test");
                     output.flush();
                     System.out.println("test");
@@ -61,9 +56,11 @@ public class ServerThread implements Runnable {
         JSONObject response;
         // add overloaded response upon first request
         try {
+            input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
+            output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
             JSONObject request;
             System.out.println("Receiving startstream request");
-            request = new JSONObject(input.readUTF());
+            request = new JSONObject(input.readLine());
             if (request.getString("request").equals("startstream")) {
                 if (request.has("ratelimit")) {
                     rateLimit = request.getInt("ratelimit");
@@ -80,7 +77,7 @@ public class ServerThread implements Runnable {
                 } catch (JSONException e) {
                     assert false;
                 }
-                output.writeUTF(response.toString());
+                output.write(response.toString() + "\n");
                 output.flush();
                 return;
             }
@@ -91,7 +88,7 @@ public class ServerThread implements Runnable {
             } catch (JSONException e) {
                 assert false;
             }
-            output.writeUTF(response.toString());
+            output.write(response.toString() + "\n");
             output.flush();
             // create image-sender thread
             Thread imageSender = new Thread(new ImageSenderThread());
@@ -99,7 +96,7 @@ public class ServerThread implements Runnable {
             // read client requests asynchronously
             while (true) {
                 System.out.println("Receiving client request");
-                request = new JSONObject(input.readUTF());
+                request = new JSONObject(input.readLine());
                 if (request.getString("request").equals("stopstream")) {
                     System.out.println("Sending stoppedstream response");
                     imageSender.interrupt();
